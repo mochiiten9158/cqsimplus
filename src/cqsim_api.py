@@ -71,6 +71,6 @@ if __name__ == "__main__":
                 path_out = "../data/Results/",
                 path_fmt = "../data/Fmt/",
                 path_debug = "../data/Debug/",
-                job_trace= "theta_2022.swf",
-                node_struc= "theta_2022.swf",
+                job_trace= "test.swf",
+                node_struc= "test.swf",
                 debug_lvl=4)
