@@ -2,6 +2,8 @@ import IOModule.Log_print as Log_print
 
 __metaclass__ = type
 
+time_stamps = []
+
 class Cqsim_sim:
     def __init__(self, module, debug = None, monitor = None):
         self.myInfo = "Cqsim Sim"
@@ -31,7 +33,6 @@ class Cqsim_sim:
             temp_name = self.module[module_name].myInfo
             self.debug.debug(temp_name+" ................... Load",4)
             self.debug.line(4)
-        self.time_stamps = []
 
     def reset(self, module = None, debug = None, monitor = None):
         #self.debug.debug("# "+self.myInfo+" -- reset",5)
@@ -66,12 +67,14 @@ class Cqsim_sim:
         self.print_result()
         self.debug.debug("------ Simulating Done!",2) 
         self.debug.debug(lvl=1)
-        file = open('time_stamps.txt', 'w')
-        for element in self.time_stamps:
-            print(element)
-            file.write((str)(element))
-            file.write("\n")
-        file.close()
+
+        #file = open('time_stamps.txt', 'w')
+        #for element in self.time_stamps:
+        #    print(element)
+        #    file.write((str)(element))
+        #    file.write("\n")
+        #file.close()
+
         return
 
     def import_submit_events(self):
@@ -278,7 +281,8 @@ class Cqsim_sim:
         #self.debug.debug("# "+self.myInfo+" -- submit",5) 
         self.debug.debug("[Submit]  "+str(job_index),3)
         self.module['job'].job_submit(job_index)
-        self.time_stamps.append([self.currentTime, 0, job_index])
+        global time_stamps
+        time_stamps.append([self.currentTime, 0, job_index])
         return
     
     def finish(self, job_index):
@@ -288,7 +292,8 @@ class Cqsim_sim:
         self.module['job'].job_finish(job_index)
         self.module['output'].print_result(self.module['job'], job_index)
         self.module['job'].remove_job_from_dict(job_index)
-        self.time_stamps.append([self.currentTime, 2, job_index])
+        global time_stamps
+        time_stamps.append([self.currentTime, 2, job_index])
         return
     
     def start(self, job_index):
@@ -298,7 +303,8 @@ class Cqsim_sim:
          self.currentTime, self.currentTime + self.module['job'].job_info(job_index)['reqTime'])
         self.module['job'].job_start(job_index, self.currentTime)
         self.insert_event(1,self.currentTime+self.module['job'].job_info(job_index)['run'],1,[2,job_index])
-        self.time_stamps.append([self.currentTime, 1, job_index])
+        global time_stamps
+        time_stamps.append([self.currentTime, 1, job_index])
         return
     
     def score_calculate(self):

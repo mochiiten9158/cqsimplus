@@ -15,8 +15,6 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
-
-
 def  cqsim_main(para_list):
     print("....................")
     for item in para_list :
@@ -107,3 +105,5 @@ def  cqsim_main(para_list):
     module_sim = Class_Cqsim_sim.Cqsim_sim(module=module_list, debug=module_debug, monitor = para_list['monitor'])
     module_sim.cqsim_sim()
     #module_debug.end_debug()
+    
+    return Class_Cqsim_sim.time_stamps

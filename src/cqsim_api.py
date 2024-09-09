@@ -1,4 +1,5 @@
 from cqsim_main import cqsim_main
+from CqSim.Cqsim_sim import time_stamps
 
 def simulate(
         job_trace,
@@ -59,7 +60,9 @@ def simulate(
         read_input_freq = 1000)
     
     module_list = cqsim_main(para_list)
-    
+    if module_list is None:
+        return []
+
     return module_list
 
 def build_para_list(** kwargs):
