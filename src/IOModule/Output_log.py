@@ -9,6 +9,7 @@ class Output_log:
         self.sys_info_buf = []
         self.job_buf = []
         self.log_freq = log_freq
+        self.job_turnarounds = {}
         #print('log_freq+++++++',self.log_freq)
         self.reset_output()
     
@@ -123,6 +124,10 @@ class Output_log:
                 context += str(temp_job['start'])
                 context += sep_sign
                 context += str(temp_job['end'])
+                self.job_turnarounds[temp_job['id']] = {
+                    "runtime" : temp_job['run'],
+                    "turnaround" : temp_job['end'] - temp_job['submit']
+                }
                 self.job_result.log_print(context,1)
             self.job_result.file_close()
             self.job_buf = []
