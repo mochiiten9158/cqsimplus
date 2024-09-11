@@ -15,7 +15,6 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
-import Extend.Aurora.Node_struc_Aurora as node_struct_ext_aurora
 
 def  cqsim_main(para_list):
     print("....................")
@@ -53,19 +52,24 @@ def  cqsim_main(para_list):
     #module_debug.start_debug()
     
     # Job Filter
-    # print(".................... Job Filter")
-    # module_filter_job = filter_job_ext.Filter_job_SWF(trace=trace_name, save=save_name_j, config=config_name_j, debug=module_debug)
-    # module_filter_job.feed_job_trace()
-    # #module_filter_job.read_job_trace()
-    # #module_filter_job.output_job_data()
-    # module_filter_job.output_job_config()
+    # Notes: 
+    # creates file data/Fmt/test.csv -- later used by the Job Trace module
+    print(".................... Job Filter")
+    module_filter_job = filter_job_ext.Filter_job_SWF(trace=trace_name, save=save_name_j, config=config_name_j, debug=module_debug)
+    module_filter_job.feed_job_trace()
+    # module_filter_job.feed_job_trace_with_mask([1,0,1,1,1,1,1,1,1])
+    #module_filter_job.read_job_trace()
+    #module_filter_job.output_job_data()
+    module_filter_job.output_job_config()
     
-    # # Node Filter
-    # print(".................... Node Filter")
-    # module_filter_node = filter_node_ext.Filter_node_SWF(struc=struc_name, save=save_name_n, config=config_name_n, debug=module_debug)
-    # module_filter_node.read_node_struc()
-    # module_filter_node.output_node_data()
-    # module_filter_node.output_node_config()
+    # Node Filter
+    # Notes: 
+    # creates file data/Fmt/test_node.csv -- later used by the Node Structure module
+    print(".................... Node Filter")
+    module_filter_node = filter_node_ext.Filter_node_SWF(struc=struc_name, save=save_name_n, config=config_name_n, debug=module_debug)
+    module_filter_node.read_node_struc()
+    module_filter_node.output_node_data()
+    module_filter_node.output_node_config()
     
     # Job Trace
     print(".................... Job Trace")
@@ -76,8 +80,7 @@ def  cqsim_main(para_list):
     
     # Node Structure
     print(".................... Node Structure")
-    # module_node_struc = node_struc_ext.Node_struc_SWF(debug=module_debug)
-    module_node_struc = node_struct_ext_aurora.Node_struc_Aurora(debug = module_debug)
+    module_node_struc = node_struc_ext.Node_struc_SWF(debug=module_debug)
     module_node_struc.import_node_file(save_name_n)
     module_node_struc.import_node_config(config_name_n)
     
