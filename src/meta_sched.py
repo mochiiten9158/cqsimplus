@@ -16,6 +16,7 @@ import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
 trace_name = "test"
+# trace_name = "SDSC-SP2-1998-4.2-cln"
 
 
 import builtins
@@ -65,6 +66,26 @@ def get_job_count():
     module_filter_job.feed_job_trace()
     module_filter_job.output_job_config()
     return module_filter_job.jobNum
+
+def get_job_ids_procs():
+
+    module_debug = Class_Debug_log.Debug_log(
+        lvl=0,
+        show=0,
+        path= f'../data/Debug/debug_{trace_name}.log',
+        log_freq=1
+    )
+    save_name_j = f'../data/Fmt/{trace_name}.csv'
+    config_name_j = f'../data/Fmt/{trace_name}.con'
+    module_filter_job = filter_job_ext.Filter_job_SWF(
+        trace=f'../data/InputFiles/{trace_name}.swf', 
+        save=save_name_j, 
+        config=config_name_j, 
+        debug=module_debug
+    )
+    module_filter_job.feed_job_trace()
+    module_filter_job.output_job_config()
+    return module_filter_job.job_ids, module_filter_job.job_procs
 
 def run_simulation(mask, proc_count):
     with disable_print():
@@ -181,10 +202,13 @@ def run_simulation(mask, proc_count):
         return module_output_log.job_turnarounds
 
 job_count = get_job_count()
+job_ids, job_procs = get_job_ids_procs()
+print(job_ids)
+print(job_procs)
 clusters = {
-   90 : [0 for _ in range(job_count)],
-   100 : [0 for _ in range(job_count)],
-   110 : [0 for _ in range(job_count)]
+   32 : [0 for _ in range(job_count)],
+   64 : [0 for _ in range(job_count)],
+   128 : [0 for _ in range(job_count)]
 }
 
 # Read jobs one by one
@@ -193,21 +217,33 @@ for i in range(job_count):
     # Simulate the clusters and find the turnarounds
     cluster_latest_job_turnarounds = {}
     for c in clusters:
-       print(c)
-       clusters[c][i] = 1
-       turnarounds = run_simulation(clusters[c], c)
-       clusters[c][i] = 0
-       print(turnarounds)
-       latest_job_turnaround = turnarounds[max(turnarounds.keys())]["turnaround"]
-       print(latest_job_turnaround)
-       cluster_latest_job_turnarounds[c] = latest_job_turnaround
-       print()
+
+        # Check if the cluster can run the job
+        if job_procs[i] > c:
+           continue
+
+        # Add the job to the cluster for simualtion
+        clusters[c][i] = 1
+
+        # Run the simulation
+        turnarounds = run_simulation(clusters[c], c)
+
+        # Remove the job after simulation
+        clusters[c][i] = 0
+
+
+        # Find the turnaround of the last job
+        latest_job_turnaround = turnarounds[job_ids[i]]["turnaround"]
+        cluster_latest_job_turnarounds[c] = latest_job_turnaround
+
     
     # Find the cluster with the lowest turnaround, break ties randomly
     lowest_turnaround = min(cluster_latest_job_turnarounds.values())
     clusters_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
     import random
-    selected_cluster = random.choice(clusters_with_lowest_turnaround)
+    selected_cluster = min(clusters_with_lowest_turnaround)
+    # selected_cluster = max(clusters_with_lowest_turnaround)
+    # selected_cluster = random.choice(clusters_with_lowest_turnaround)
 
     # Cluster with lowest turnaround gets the job
     clusters[selected_cluster][i] = 1

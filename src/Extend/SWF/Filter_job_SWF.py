@@ -14,6 +14,8 @@ class Filter_job_SWF(filter_job.Filter_job):
         self.config_data=[]
         self.config_data.append({'name_config':'date','name':'StartTime','value':''})
         self.config_data.append({'name_config':'start_offset','name':None,'value':''})
+        self.job_ids = []
+        self.job_procs = []
 
     def feed_job_trace_with_mask(self, mask):
         if not self.save:
@@ -362,6 +364,8 @@ class Filter_job_SWF(filter_job.Filter_job):
                         f2.write(sep_sign)
                         f2.write(str(tempInfo['thinkTime']))
                         f2.write("\n")
+                        self.job_ids.append(tempInfo['id'])
+                        self.job_procs.append(tempInfo['usedProc'])
                         #self.jobList.append(tempInfo)
                         temp_readNum+=1
                         #job_num += 1
