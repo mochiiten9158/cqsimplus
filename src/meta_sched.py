@@ -17,11 +17,14 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
-trace_name = "test"
+# trace_name = "test"
 trace_dir = "../data/InputFiles/"
 #trace_name = "SDSC-SP2-1998-4.2-cln"
 #trace_name = 'ANL-Intrepid-2009-1'
-# trace_name = 'theta_2022'
+trace_name = 'theta_1000'
+
+clusters = [3270,1090]
+cluster_speeds = [1, 0.8]
 
 import builtins
 import contextlib
@@ -209,10 +212,8 @@ def run_simulation(
         return module_output_log.job_turnarounds
 
 job_count, job_ids, job_procs = get_job_data()
-clusters = [100,50]
-cluster_masks = [[0 for _ in range(job_count)] for c in clusters]
-cluster_speeds = [1, 0.8]
 
+cluster_masks = [[0 for _ in range(job_count)] for c in clusters]
 export_data = []
 # job_count = 1000
 # Read jobs one by one
