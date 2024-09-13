@@ -1,4 +1,6 @@
 import os
+from tqdm import trange
+
 import cqsim_path
 import IOModule.Debug_log as Class_Debug_log
 import IOModule.Output_log as Class_Output_log
@@ -16,8 +18,10 @@ import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
 trace_name = "test"
-# trace_name = "SDSC-SP2-1998-4.2-cln"
-
+trace_dir = "../data/InputFiles/"
+#trace_name = "SDSC-SP2-1998-4.2-cln"
+#trace_name = 'ANL-Intrepid-2009-1'
+# trace_name = 'theta_2022'
 
 import builtins
 import contextlib
@@ -46,8 +50,29 @@ def enable_print():
   finally:
     pass  # No need to do anything in the finally block
 
+def read_swf(filename):
+  """
+  Reads the input from the specified file and processes each line into a list of integers.
 
-def get_job_count():
+  Args:
+    filename: The name of the file to read.
+
+  Returns:
+    A list of lists, where each inner list represents a processed line of input.
+  """
+  data = []
+
+  with open(filename, 'r') as file:
+    for line in file:
+      
+      # TODO: For now ignoring the header of the swf file
+      if line[0] == ';':
+        continue
+      data.append(line)
+
+  return data
+
+def get_job_data():
 
     module_debug = Class_Debug_log.Debug_log(
         lvl=0,
@@ -58,36 +83,21 @@ def get_job_count():
     save_name_j = f'../data/Fmt/{trace_name}.csv'
     config_name_j = f'../data/Fmt/{trace_name}.con'
     module_filter_job = filter_job_ext.Filter_job_SWF(
-        trace=f'../data/InputFiles/{trace_name}.swf', 
+        trace=f'{trace_dir}{trace_name}.swf', 
         save=save_name_j, 
         config=config_name_j, 
         debug=module_debug
     )
     module_filter_job.feed_job_trace()
     module_filter_job.output_job_config()
-    return module_filter_job.jobNum
+    return module_filter_job.jobNum, module_filter_job.job_ids, module_filter_job.job_procs
 
-def get_job_ids_procs():
-
-    module_debug = Class_Debug_log.Debug_log(
-        lvl=0,
-        show=0,
-        path= f'../data/Debug/debug_{trace_name}.log',
-        log_freq=1
-    )
-    save_name_j = f'../data/Fmt/{trace_name}.csv'
-    config_name_j = f'../data/Fmt/{trace_name}.con'
-    module_filter_job = filter_job_ext.Filter_job_SWF(
-        trace=f'../data/InputFiles/{trace_name}.swf', 
-        save=save_name_j, 
-        config=config_name_j, 
-        debug=module_debug
-    )
-    module_filter_job.feed_job_trace()
-    module_filter_job.output_job_config()
-    return module_filter_job.job_ids, module_filter_job.job_procs
-
-def run_simulation(mask, proc_count):
+def run_simulation(
+      trace_name, trace_dir, mask, mask_max_i, proc_count, speed,
+      output_sys = "../data/Results/" + trace_name + ".ult",
+        output_adapt = "../data/Results/" + trace_name + ".adp",
+        output_result = "../data/Results/" + trace_name + ".rst",
+      ):
     with disable_print():
         print(".................... Debug")
         module_debug = Class_Debug_log.Debug_log(
@@ -101,12 +111,12 @@ def run_simulation(mask, proc_count):
         save_name_j = f'../data/Fmt/{trace_name}.csv'
         config_name_j = f'../data/Fmt/{trace_name}.con'
         module_filter_job = filter_job_ext.Filter_job_SWF(
-            trace=f'../data/InputFiles/{trace_name}.swf', 
+            trace=f'{trace_dir}{trace_name}.swf', 
             save=save_name_j, 
             config=config_name_j, 
             debug=module_debug
         )
-        module_filter_job.feed_job_trace_with_mask(mask)
+        module_filter_job.feed_job_trace_with_mask_speed(mask, mask_max_i,speed)
         module_filter_job.output_job_config()
 
 
@@ -114,7 +124,7 @@ def run_simulation(mask, proc_count):
         save_name_n = f'../data/Fmt/{trace_name}_node.csv'
         config_name_n = f'../data/Fmt/{trace_name}_node.con'
         module_filter_node = filter_node_ext.Filter_node_SWF(
-            struc=f'../data/InputFiles/{trace_name}.swf',
+            struc=f'{trace_dir}{trace_name}.swf',
             save=save_name_n, 
             config=config_name_n, 
             debug=module_debug
@@ -171,9 +181,6 @@ def run_simulation(mask, proc_count):
             alg_module=module_alg,debug=module_debug)
 
         print(".................... Output Log")
-        output_sys = "../data/Results/" + trace_name + ".ult"
-        output_adapt = "../data/Results/" + trace_name + ".adp"
-        output_result = "../data/Results/" + trace_name + ".rst"
         module_output_log = Class_Output_log.Output_log (
             output = {
                 'sys':output_sys, 
@@ -201,53 +208,126 @@ def run_simulation(mask, proc_count):
         module_sim.cqsim_sim()
         return module_output_log.job_turnarounds
 
-job_count = get_job_count()
-job_ids, job_procs = get_job_ids_procs()
-print(job_ids)
-print(job_procs)
-clusters = {
-   32 : [0 for _ in range(job_count)],
-   64 : [0 for _ in range(job_count)],
-   128 : [0 for _ in range(job_count)]
-}
+job_count, job_ids, job_procs = get_job_data()
+clusters = [100,50]
+cluster_masks = [[0 for _ in range(job_count)] for c in clusters]
+cluster_speeds = [1, 0.8]
 
+export_data = []
+# job_count = 1000
 # Read jobs one by one
-for i in range(job_count):
-
+for i in trange(job_count):
     # Simulate the clusters and find the turnarounds
     cluster_latest_job_turnarounds = {}
-    for c in clusters:
+    for j in range(len(clusters)):
 
         # Check if the cluster can run the job
-        if job_procs[i] > c:
+        if job_procs[i] > clusters[j]:
            continue
 
         # Add the job to the cluster for simualtion
-        clusters[c][i] = 1
+        cluster_masks[j][i] = 1
 
         # Run the simulation
-        turnarounds = run_simulation(clusters[c], c)
+        turnarounds = run_simulation(
+           trace_name,
+           trace_dir, 
+           cluster_masks[j], # Mask for the jobs that should be considered
+           i, # Max number of jobs to simulate
+           clusters[j], # proc count for the cluster
+           cluster_speeds[j] # speed of the cluster
+        )
 
         # Remove the job after simulation
-        clusters[c][i] = 0
-
+        cluster_masks[j][i] = 0
 
         # Find the turnaround of the last job
         latest_job_turnaround = turnarounds[job_ids[i]]["turnaround"]
-        cluster_latest_job_turnarounds[c] = latest_job_turnaround
-
+        cluster_latest_job_turnarounds[j] = latest_job_turnaround
     
-    # Find the cluster with the lowest turnaround, break ties randomly
+    # If no clusters can run, skip the job
+    if len(cluster_latest_job_turnarounds.values()) == 0:
+        continue
+    
+    # Find the cluster with the lowest turnaround
     lowest_turnaround = min(cluster_latest_job_turnarounds.values())
-    clusters_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
+    cluster_index_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
+
     import random
-    selected_cluster = min(clusters_with_lowest_turnaround)
-    # selected_cluster = max(clusters_with_lowest_turnaround)
-    # selected_cluster = random.choice(clusters_with_lowest_turnaround)
+    selected_cluster_i = random.choice(cluster_index_with_lowest_turnaround)
 
-    # Cluster with lowest turnaround gets the job
-    clusters[selected_cluster][i] = 1
-    
+    # Add the job
+    cluster_masks[selected_cluster_i][i] = 1
 
-for c in clusters:
-   print(f'{c}: {clusters[c]}')
+    # Gernete output
+    line = ''
+    line += f'{job_ids[i]};{job_procs[i]};'
+    for j in range(len(clusters)):
+        if j in cluster_latest_job_turnarounds:
+            line += f'{clusters[j]};{cluster_latest_job_turnarounds[j]};'
+        else:
+           line += f'{clusters[j]};-1;'
+    line += f'{clusters[selected_cluster_i]}\n'
+    export_data.append(line)
+    #print(line, end='')
+    ### Pretty Print
+    # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+    # print(f'Job Id: {job_ids[i]}\tProc: {job_procs[i]}')
+    # for j in range(len(clusters)):
+    #     if j in cluster_latest_job_turnarounds:
+    #         print(f'\tCluster: {clusters[j]}\tTurnaround: {cluster_latest_job_turnarounds[j]}')
+    #     else:
+    #        print(f'\tCluster: {clusters[j]}\tTurnaround: {-1}')
+    # print(f'Selected cluster: {clusters[selected_cluster_i]}')
+    # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+
+result_file_names = []
+result_dir = f'../data/Results/{trace_name}/'
+if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+# ### Generate the SWF separated files
+file_descriptors = []
+for j in range(len(clusters)):
+    file_name = f'cluster_{j}_{clusters[j]}_{cluster_speeds[j]*100}.swf'
+    file_path = result_dir + file_name
+    result_file_names.append(file_name)
+    f = open(file_path, 'w+')
+    f.write(f'; UnixStartTime: 0\n')
+    f.write(f'; MaxNodes: {clusters[j]}\n')
+    f.write(f'; MaxProcs: {clusters[j]}\n')
+    file_descriptors.append(f)
+
+o_swf = read_swf(f'{trace_dir}{trace_name}.swf')
+
+for i in range(job_count):
+    # Find the cluster the job was assigned to
+    assigned_cluster_i = -1
+    for j in range(len(clusters)):
+       if cluster_masks[j][i] == 1:
+          assigned_cluster_i = j
+          break
+    if assigned_cluster_i == -1:
+       continue
+    f = file_descriptors[assigned_cluster_i]
+    # print(o_swf[i])
+    f.write(o_swf[i])
+
+for f in file_descriptors:
+   f.close()
+        
+
+### Re-run simulation on final files to produce result files
+for j in range(len(clusters)):
+   print(f'Final simulation of {j}, {clusters[j]}, {cluster_speeds[j]}')
+   run_simulation(
+        trace_name,
+        trace_dir,
+        cluster_masks[j],
+        len(cluster_masks[j]),
+        clusters[j],
+        cluster_speeds[j],
+        output_sys = "../data/Results/" + trace_name + '/' + result_file_names[j].split('.')[0] + ".ult",
+        output_adapt = "../data/Results/" + trace_name + '/' + result_file_names[j].split('.')[0] + ".adp",
+        output_result = "../data/Results/" + trace_name + '/' + result_file_names[j].split('.')[0] + ".rst",
+   )

@@ -17,7 +17,7 @@ class Filter_job_SWF(filter_job.Filter_job):
         self.job_ids = []
         self.job_procs = []
 
-    def feed_job_trace_with_mask(self, mask):
+    def feed_job_trace_with_mask_speed(self, mask, mask_max_i,speed):
         if not self.save:
             print("Save file not set!")
             return
@@ -33,7 +33,7 @@ class Filter_job_SWF(filter_job.Filter_job):
         temp_readNum=0
         temp_start=0
         #job_num = 0
-        while (temp_readNum<self.rnum or self.rnum<=0):
+        while (temp_readNum<=mask_max_i):
             #print temp_readNum,")(",temp_start
             tempStr = jobFile.readline()
             if not tempStr :    # break when no more line
@@ -120,7 +120,7 @@ class Filter_job_SWF(filter_job.Filter_job):
                     tempInfo = {'id':int(ID),\
                                 'submit':self.density*(float(submit)-min_sub)+self.start,\
                                 'wait':float(wait),\
-                                'run':float(run),\
+                                'run':float(run)*speed,\
                                 'usedProc':int(usedProc),\
                                 'usedAveCPU':float(usedAveCPU),\
                                 'usedMem':float(usedMem),\
