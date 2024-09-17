@@ -19,7 +19,9 @@ class Job_trace:
             virtual_start_time = 0.0, 
             density=1.0, 
             mask = None,
-            max_lines = 8000):
+            max_lines = 8000,
+            job_runtime_scale_factor = 1.0,
+            job_walltime_scale_factor = 1.0):
         """Initialize the Job Trace Module.
 
         Args:
@@ -30,6 +32,8 @@ class Job_trace:
             debug: The debug module
             mask: Mask for the job trace
             max_lines: The maximum number of lines to read from job file.
+            job_runtime_scaler: Factor to scale the job runtimes by.
+            job_walltime_scaler: Factor to scale the job walltimes by.
 
         Attributes:
             myInfo: Module information.
@@ -39,6 +43,7 @@ class Job_trace:
             debug: The debug module.
             mask: A binary mask for excluding or including jobs.
             max_lines: The maximum number of lines to read from job file.
+            cluster_speed: The speed of the cluster.
             jobTrace: Dictionary to keep track of the jobs while simulation.
             job_file_path: The CSV file to read the job submit events from.
             job_fd: file descriptior for the job file read at job_file_path.
@@ -60,6 +65,8 @@ class Job_trace:
         self.debug = debug
         self.mask = mask
         self.max_lines = max_lines
+        self.job_runtime_scale_factor = job_runtime_scale_factor
+        self.job_walltime_scale_factor = job_walltime_scale_factor
         self.jobTrace={}
         self.job_file_path = job_file_path
         self.job_fd =  open(self.job_file_path,'r')
@@ -81,7 +88,7 @@ class Job_trace:
             self.mask = self.mask[:self.max_lines]
 
 
-    def dynamic_read_job(self):
+    def dynamic_read_job_file(self):
         """
         Reads the next line from the job file, adhereing to the mask.
         Parse the line and populate job trace with the job info.
@@ -141,6 +148,11 @@ class Job_trace:
                     'happy':-1,\
                     'estStart':-1
                 }
+        
+        # Adjust the runtime and walltime for the cluster speed
+        job_info['run'] = job_info['run'] * self.job_runtime_scale_factor
+        job_info['reqTime'] = job_info['reqTime'] * self.job_walltime_scale_factor
+
         self.jobTrace[self.job_counter] = job_info
         self.job_submit_list.append(self.job_counter)
         self.line_number += 1
