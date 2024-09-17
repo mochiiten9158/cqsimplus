@@ -27,7 +27,7 @@ trace_name = 'theta_1000'
 start_time = 1641021254
 
 clusters = [2180, 2180]
-cluster_speeds = [1.5, 1]
+cluster_speeds = [1, 1]
 
 import builtins
 import contextlib
@@ -221,58 +221,70 @@ export_data = []
 # job_count = 1000
 # Read jobs one by one
 for i in trange(job_count):
+
+
+    # NO SIMULATION REQUIRED FOR RANDOM SELECTION
     # Simulate the clusters and find the turnarounds
-    cluster_latest_job_turnarounds = {}
-    for j in range(len(clusters)):
+    # cluster_latest_job_turnarounds = {}
+    # for j in range(len(clusters)):
 
-        # Check if the cluster can run the job
-        if job_procs[i] > clusters[j]:
-           continue
+    #     # Check if the cluster can run the job
+    #     if job_procs[i] > clusters[j]:
+    #        continue
 
-        # Add the job to the cluster for simualtion
-        cluster_masks[j][i] = 1
+    #     # Add the job to the cluster for simualtion
+    #     cluster_masks[j][i] = 1
 
-        # Run the simulation
-        turnarounds = run_simulation(
-           trace_name,
-           trace_dir, 
-           cluster_masks[j], # Mask for the jobs that should be considered
-           i, # Max number of jobs to simulate
-           clusters[j], # proc count for the cluster
-           cluster_speeds[j] # speed of the cluster
-        )
+    #     # Run the simulation
+    #     turnarounds = run_simulation(
+    #        trace_name,
+    #        trace_dir, 
+    #        cluster_masks[j], # Mask for the jobs that should be considered
+    #        i, # Max number of jobs to simulate
+    #        clusters[j], # proc count for the cluster
+    #        cluster_speeds[j] # speed of the cluster
+    #     )
 
-        # Remove the job after simulation
-        cluster_masks[j][i] = 0
+    #     # Remove the job after simulation
+    #     cluster_masks[j][i] = 0
 
-        # Find the turnaround of the last job
-        latest_job_turnaround = turnarounds[job_ids[i]]["turnaround"]
-        cluster_latest_job_turnarounds[j] = latest_job_turnaround
+    #     # Find the turnaround of the last job
+    #     latest_job_turnaround = turnarounds[job_ids[i]]["turnaround"]
+    #     cluster_latest_job_turnarounds[j] = latest_job_turnaround
     
     # If no clusters can run, skip the job
-    if len(cluster_latest_job_turnarounds.values()) == 0:
-        continue
+    # if len(cluster_latest_job_turnarounds.values()) == 0:
+    #     continue
     
     # Find the cluster with the lowest turnaround
-    lowest_turnaround = min(cluster_latest_job_turnarounds.values())
-    cluster_index_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
+    # lowest_turnaround = min(cluster_latest_job_turnarounds.values())
+    # cluster_index_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
+
+    # Check if the job can run on any cluster
+    unsuited_clusters = 0
+    for cluster in clusters:
+        if job_procs[i] > cluster:
+            unsuited_clusters += 1
+    if unsuited_clusters == len(clusters):
+       continue
+
 
     import random
-    selected_cluster_i = random.choice(cluster_index_with_lowest_turnaround)
+    selected_cluster_i = random.choice([i for i in range(0, len(clusters))])
 
     # Add the job
     cluster_masks[selected_cluster_i][i] = 1
 
     # Gernete output
-    line = ''
-    line += f'{job_ids[i]};{job_procs[i]};'
-    for j in range(len(clusters)):
-        if j in cluster_latest_job_turnarounds:
-            line += f'{clusters[j]};{cluster_latest_job_turnarounds[j]};'
-        else:
-           line += f'{clusters[j]};-1;'
-    line += f'{clusters[selected_cluster_i]}\n'
-    export_data.append(line)
+    # line = ''
+    # line += f'{job_ids[i]};{job_procs[i]};'
+    # for j in range(len(clusters)):
+    #     if j in cluster_latest_job_turnarounds:
+    #         line += f'{clusters[j]};{cluster_latest_job_turnarounds[j]};'
+    #     else:
+    #        line += f'{clusters[j]};-1;'
+    # line += f'{clusters[selected_cluster_i]}\n'
+    # export_data.append(line)
     #print(line, end='')
     ## Pretty Print
     # print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')

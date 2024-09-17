@@ -132,6 +132,12 @@ class Output_log:
             self.job_result.file_close()
             self.job_buf = []
     
+    def get_result():
+        '''
+        Returns a data frame with results after simulation
+        '''
+        pass
+
     '''
     def print_result(self, job_module):
         sep_sign=";"
