@@ -100,6 +100,7 @@ class Job_trace:
             pid = os.fork()
             # Parent
             if pid > 0 :
+
                 os.waitpid(pid,0)
             # Child
             else :
