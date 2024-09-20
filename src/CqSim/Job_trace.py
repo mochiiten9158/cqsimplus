@@ -2,6 +2,7 @@ from datetime import datetime
 from functools import cmp_to_key 
 import time
 import re
+import os
 
 __metaclass__ = type
 
@@ -90,9 +91,22 @@ class Job_trace:
 
     def dynamic_read_job_file(self):
         """
-        Reads the next line from the job file, adhereing to the mask.
-        Parse the line and populate job trace with the job info.
+        Reads the next line from the job file, skips lines accroding to the mask.
+        The line is parsed for job data and added to the job trace.
         """
+        print("***************", self.line_number)
+
+        if self.line_number == 2:
+            pid = os.fork()
+            # Parent
+            if pid > 0 :
+                os.waitpid(pid,0)
+            # Child
+            else :
+                print('CHILD CHILD CHILD CHILD CHILD CHILD')
+                # Fake the end of the file
+                return -1
+
 
         # Read the next job line.
         job_line = self.job_fd.readline()
@@ -149,12 +163,14 @@ class Job_trace:
                     'estStart':-1
                 }
         
-        # Adjust the runtime and walltime for the cluster speed
+        # Adjust the runtime and walltime according to the scaling factors.
         job_info['run'] = job_info['run'] * self.job_runtime_scale_factor
         job_info['reqTime'] = job_info['reqTime'] * self.job_walltime_scale_factor
 
         self.jobTrace[self.job_counter] = job_info
         self.job_submit_list.append(self.job_counter)
+
+
         self.line_number += 1
         self.job_counter += 1
         return 0

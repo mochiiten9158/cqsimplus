@@ -17,6 +17,22 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
+
+# Module wise config
+config = {
+
+        'job': {},
+        'node': {},
+        'backfill': {},
+        'win': {},
+        'alg': {},
+        'info': {},
+        'output':{}
+    
+}
+
+
+
 trace_dir = "../data/InputFiles/"
 # trace_name = "SDSC-SP2-1998-4.2-cln"
 # trace_name = 'ANL-Intrepid-2009-1'
@@ -65,7 +81,9 @@ def run_simulation(
     print(".................... Job Trace")
     module_job_trace = Class_Job_trace.Job_trace(
         job_file_path=save_name_j,
-        debug=module_debug
+        debug=module_debug,
+        real_start_time=0,
+        virtual_start_time=0
     )
     module_job_trace.import_job_config(config_name_j)
 
