@@ -3,6 +3,7 @@ from functools import cmp_to_key
 import time
 import re
 import os
+from CqSim.Cqsim_plus import Cqsim_plus
 
 __metaclass__ = type
 
@@ -26,6 +27,7 @@ class Job_trace:
         """Initialize the Job Trace Module.
 
         Args:
+            context: TODO: Context to run 
             job_file_path: Path of the job file to read from.
             real_start_time: Real start time for the simulator.
             virutual_start_time: Virtual start time for the simulator.
@@ -56,6 +58,7 @@ class Job_trace:
             temp_Start: ???
             line_number: The line number in the job file.
             j: ???
+            end_read: If set, dynamic_read_job_file will assume reading is over and will return -1.
 
         """
 
@@ -78,6 +81,7 @@ class Job_trace:
         self.line_number = 0
         self.job_counter = 0
         self.num_delete_jobs = 0
+        self.context: Cqsim_plus
 
 
         # If the mask is not defnied, initialze the mask to read all jobs.
@@ -94,19 +98,12 @@ class Job_trace:
         Reads the next line from the job file, skips lines accroding to the mask.
         The line is parsed for job data and added to the job trace.
         """
-        print("***************", self.line_number)
-
+        # print("***************", self.line_number)
         if self.line_number == 2:
-            pid = os.fork()
-            # Parent
-            if pid > 0 :
-
-                os.waitpid(pid,0)
-            # Child
-            else :
-                print('CHILD CHILD CHILD CHILD CHILD CHILD')
-                # Fake the end of the file
-                return -1
+            if self.context:
+                value = self.context.fork_wait_advice(self.context.FWA_DYN_READ_JOB)
+                if value == -1:
+                    return -1
 
 
         # Read the next job line.
@@ -372,6 +369,9 @@ class Job_trace:
         del self.jobTrace[job_index]
         self.num_delete_jobs += 1
         #print('jobTrace.keys',self.jobTrace.keys())
+
+    def close_file_job_file(self):
+        self.job_fd.close()
     
     
     

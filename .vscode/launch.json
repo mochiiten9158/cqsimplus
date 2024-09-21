@@ -11,7 +11,16 @@
             "program": "${workspaceFolder}/src/meta_sched.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/src",
+        },
+        {
+            "name": "test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/test.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/src",
         }
+    ]
     ]
 }
 

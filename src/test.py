@@ -12,6 +12,7 @@ import CqSim.Start_window as Class_Start_window
 import CqSim.Basic_algorithm as Class_Basic_algorithm
 import CqSim.Info_collect as Class_Info_collect
 import CqSim.Cqsim_sim as Class_Cqsim_sim
+import CqSim.Cqsim_plus as Class_Cqsim_plus
 
 import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
@@ -142,13 +143,19 @@ def run_simulation(
         'info':module_info_collect,
         'output':module_output_log
     }
-    module_sim = Class_Cqsim_sim.Cqsim_sim(
-        module=module_list, 
-        debug=module_debug, 
+    # module_sim = Class_Cqsim_sim.Cqsim_sim(
+    #     module=module_list, 
+    #     debug=module_debug, 
+    #     monitor = 500
+    # )
+    # module_sim.cqsim_sim()
+    module_cqsimp = Class_Cqsim_plus.Cqsim_plus(
+        module_list=module_list,
+        module_debug=module_debug,
         monitor = 500
     )
-    module_sim.cqsim_sim()
-    return module_output_log.job_turnarounds
+    module_cqsimp.run_simulation_vanilla()
+    return
 
 
 run_simulation(trace_name, trace_dir, 100)
