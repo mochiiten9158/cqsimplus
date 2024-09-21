@@ -3,7 +3,6 @@ from functools import cmp_to_key
 import time
 import re
 import os
-from CqSim.Cqsim_plus import Cqsim_plus
 
 __metaclass__ = type
 
@@ -81,7 +80,7 @@ class Job_trace:
         self.line_number = 0
         self.job_counter = 0
         self.num_delete_jobs = 0
-        self.context: Cqsim_plus
+        self.context = None
 
 
         # If the mask is not defnied, initialze the mask to read all jobs.
@@ -92,20 +91,24 @@ class Job_trace:
         if len(self.mask) > self.max_lines:
             self.mask = self.mask[:self.max_lines]
 
+    def update_max_lines(self, max_lines):
+        self.max_lines = max_lines
+
+        # If the mask is larger than max lines, truncate it.
+        if len(self.mask) > self.max_lines:
+            self.mask = self.mask[:self.max_lines]
+
+        # If the mask is smaller than max lines, truncate it.
+        if len(self.mask) < self.max_lines:
+            # TODO: Implement
+            # Does nothing
+            pass
 
     def dynamic_read_job_file(self):
         """
         Reads the next line from the job file, skips lines accroding to the mask.
         The line is parsed for job data and added to the job trace.
         """
-        # print("***************", self.line_number)
-        if self.line_number == 2:
-            if self.context:
-                value = self.context.fork_wait_advice(self.context.FWA_DYN_READ_JOB)
-                if value == -1:
-                    return -1
-
-
         # Read the next job line.
         job_line = self.job_fd.readline()
 
@@ -115,7 +118,7 @@ class Job_trace:
             return -1
         
         # Check for line number exceeding mask size.
-        if self.line_number > len(self.mask):
+        if self.line_number >= len(self.mask):
             return -1
 
         # Skip the line if the mask is 0 and read the next line

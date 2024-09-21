@@ -60,10 +60,10 @@ class Cqsim_sim:
     def cqsim_sim(self):
         #self.debug.debug("# "+self.myInfo+" -- cqsim_sim",5)
         #self.insert_submit_events()
-        self.import_submit_events()
+        yield from self.import_submit_events()
         #self.insert_event_job()
         self.insert_event_extend()
-        self.scan_event()
+        yield from self.scan_event()
         self.print_result()
         self.debug.debug("------ Simulating Done!",2) 
         self.debug.debug(lvl=1)
@@ -82,6 +82,7 @@ class Cqsim_sim:
         if self.read_job_pointer < 0:
             return -1
         temp_return = self.module['job'].dynamic_read_job_file()
+        yield 0
         i = self.read_job_pointer
         #while (i < len(self.module['job'].job_info())):
         while (i < self.module['job'].job_info_len()):
@@ -181,7 +182,7 @@ class Cqsim_sim:
             if (len(self.event_seq) == 0 or temp_currentTime >= self.previous_read_job_time) and self.read_job_pointer >= 0:
                 #print('insert_submit_events from scan_event',temp_currentTime >= self.previous_read_job_time,(self.event_pointer >= len(self.event_seq) and self.read_job_pointer >= 0))
                 #self.insert_submit_events()
-                self.import_submit_events()
+                yield from self.import_submit_events()
                 continue
             self.current_event = temp_current_event
             self.currentTime = temp_currentTime

@@ -6,18 +6,16 @@ import os
 # A generator function that yields 1 for the first time,
 # 2 second time and 3 third time
  
-def somefunction():
+def somefunction(flag):
     yield 42
+    yield 43
+
  
 def simpleGeneratorFun():
     yield 1
-    print('Sim..')
-    yield from somefunction()
+    yield from somefunction('abc')
     yield 2
-    os.fork()
-    print('Sim..')
     yield 3
-    print('Sim..')
  
  
 # Driver code to check above generator function
