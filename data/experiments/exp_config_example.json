@@ -1,0 +1,15 @@
+{
+    "simulators" : 
+    {
+        "cluster_1" :{
+            "inputs" : {
+
+            }
+
+        },
+        "cluster_2" : {
+
+        }
+
+    }
+}
