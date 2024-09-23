@@ -13,6 +13,11 @@ class Output_log:
         #print('log_freq+++++++',self.log_freq)
         self.reset_output()
     
+    def disable(self):
+        self.sys_info.disable()
+        self.adapt_info.disable()
+        self.job_result.disable()
+    
     def reset(self, output = None, log_freq = 1):
         if output:
             self.output_path = output

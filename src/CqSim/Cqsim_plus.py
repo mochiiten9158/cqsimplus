@@ -79,6 +79,13 @@ class Cqsim_plus:
             result = result and self.end_flags[id]
         return result
 
+    def get_job_data(self, id):
+        """
+        Returns the job data for some simulator.
+        """
+
+
+
 
     def single_cqsim(self, trace_dir, trace_file, proc_count):
         """
@@ -211,6 +218,7 @@ class Cqsim_plus:
         )
 
         module_list = {
+            'debug':module_debug,
             'job':module_job_trace,
             'node':module_node_struc,
             'backfill':module_backfill,
@@ -305,10 +313,16 @@ class Cqsim_plus:
         None
         """
 
-        # Modify the mask so that later jobs are not read.
+        # Modify the job module so that no new jobs are read.
         job_module = self.sim_modules[id].module['job']
-
         job_module.update_max_lines(self.line_counters[id])
+
+        # Disable outputs of debug, log and output modules.
+        debug_module = self.sim_modules[id].module['debug']
+        output_module = self.sim_modules[id].module['output']
+        debug_module.disable()
+        output_module.disable()
+
 
         with open(f'runon_{self.line_counters[id]-1}.txt', 'w') as sys.stdout:
             for _ in self.sims[id]:

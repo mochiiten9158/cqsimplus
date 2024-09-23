@@ -1,4 +1,6 @@
 
+import os
+
 __metaclass__ = type
 
 class Log_print:
@@ -27,5 +29,13 @@ class Log_print:
         self.logFile.write(str(context))
         if isEnter==1:
             self.logFile.write("\n")
+
+    def disable(self):
+        self.filePath = '/dev/null'
+        if self.logFile:
+            self.logFile.close()
+            self.logFile = open(os.devnull, 'w')
+
+    
             
         

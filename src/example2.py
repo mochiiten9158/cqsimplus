@@ -12,7 +12,7 @@ cqsimp = Cqsim_plus()
 
 # Start a single cqsim simulator.
 # The object returned here is a generator object.
-id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_name = 'test.swf', proc_count=100)
+id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf', proc_count=100)
 
 # Run it while waiting for user input at each step.
 while not cqsimp.check_sim_ended(id):
