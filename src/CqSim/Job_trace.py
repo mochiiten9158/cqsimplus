@@ -140,12 +140,12 @@ class Job_trace:
         job_info = {'id':int(job_data[0]),\
                     'submit':self.density*(float(job_data[1])-self.real_start_time) + self.virtual_start_time,\
                     'wait':float(job_data[2]),\
-                    'run':float(job_data[3])*self.job_runtime_scale_factor,\
+                    'run':float(job_data[3]),\
                     'usedProc':int(job_data[4]),\
                     'usedAveCPU':float(job_data[5]),\
                     'usedMem':float(job_data[6]),\
                     'reqProc':int(job_data[7]),\
-                    'reqTime':float(job_data[8])*self.job_walltime_scale_factor,\
+                    'reqTime':float(job_data[8]),\
                     'reqMem':float(job_data[9]),\
                     'status':int(job_data[10]),\
                     'userID':int(job_data[11]),\

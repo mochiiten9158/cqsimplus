@@ -34,6 +34,7 @@ class Cqsim_plus:
     Class for CQSim plus core features.
     """
 
+
     def __init__(self) -> None:
         """Initialize CQSim plus.
 
@@ -77,7 +78,8 @@ class Cqsim_plus:
         for id in ids:
             result = result and self.end_flags[id]
         return result
-    
+
+
     def single_cqsim(self, trace_dir, trace_file, proc_count):
         """
         Sets up a single cqsim instance.
@@ -113,7 +115,6 @@ class Cqsim_plus:
         output_adapt_file = f'{trace_name}_{sim_id}.adp'
         output_result_file = f'{trace_name}_{sim_id}.rst'
 
-
         # Debug module
         debug_log = f'{trace_name}_{sim_id}_debug.log'
         module_debug = Class_Debug_log.Debug_log(
@@ -123,8 +124,6 @@ class Cqsim_plus:
             log_freq=1
         )
         self.module_debug = module_debug
-
-
 
         # Filter SWF module -- If needed
         fmt_job_file = f'{trace_name}_{sim_id}.csv'
@@ -149,7 +148,6 @@ class Cqsim_plus:
             )
             module_filter_job.feed_job_trace()
             module_filter_job.output_job_config()
-
 
             module_filter_node = filter_node_ext.Filter_node_SWF(
                 struc=f'{trace_dir}/{trace_file}',
@@ -229,11 +227,8 @@ class Cqsim_plus:
             monitor = 500
         )
 
-
         # Get the generator object
         cqsim = module_sim.cqsim_sim()
-
-
 
         # Book keeping
         self.sims.append(cqsim)
@@ -316,7 +311,8 @@ class Cqsim_plus:
         with open(f'runon_{self.line_counters[id]-1}.txt', 'w') as sys.stdout:
             for _ in self.sims[id]:
                 pass
-    
+
+
     def set_job_run_scale_factor(self, id, scale_factor):
         """
         For a certain simulator, this sets the factor by which the job runtime
@@ -336,6 +332,7 @@ class Cqsim_plus:
         """
         job_module = self.sim_modules[id].module['job']
         job_module.job_runtime_scale_factor = scale_factor
+
 
     def set_job_walltime_scale_factor(self, id, scale_factor):
         """
