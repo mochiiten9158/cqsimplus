@@ -12,6 +12,13 @@ class Output_log:
         self.job_turnarounds = {}
         #print('log_freq+++++++',self.log_freq)
         self.reset_output()
+        self.pipe_connection = None
+        self.use_pipe = False
+
+    def send_result_to_pipe(self, pipe_connection):
+        self.pipe_connection = pipe_connection
+        self.use_pipe = True
+
     
     def disable(self):
         self.sys_info.disable()
@@ -134,6 +141,8 @@ class Output_log:
                     "turnaround" : temp_job['end'] - temp_job['submit']
                 }
                 self.job_result.log_print(context,1)
+                if self.use_pipe:
+                    self.pipe_connection.send(context)
             self.job_result.file_close()
             self.job_buf = []
     

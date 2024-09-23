@@ -17,4 +17,5 @@ id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.sw
 # Run it while waiting for user input at each step.
 while not cqsimp.check_sim_ended(id):
     input('Press enter to continue...')
-    cqsimp.line_step_run_on(id)
+    results = cqsimp.line_step_run_on(id)
+    print(results)

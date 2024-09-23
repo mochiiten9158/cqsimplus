@@ -288,14 +288,26 @@ class Cqsim_plus:
         -------
         None
         """
+        parent_conn, child_conn = Pipe()
 
         self.line_step(id)
-        p = Process(target=self._line_step_run_on_child, args=(id,))
+
+        p = Process(target=self._line_step_run_on_child, args=(id, child_conn,))
         p.start()
+        child_conn.close()
+
+        result_file_lines = []
+        while True:
+            try:
+                msg = parent_conn.recv()
+                result_file_lines.append(msg)
+            except EOFError:  # Child closed the connection
+                break
         p.join()
+        return result_file_lines
 
 
-    def _line_step_run_on_child(self, id):
+    def _line_step_run_on_child(self, id, conn):
         """
         Helper to run a certain cqsim instance in a child process.
         This allows running a copy of an existing simulator, but
@@ -322,7 +334,7 @@ class Cqsim_plus:
         output_module = self.sim_modules[id].module['output']
         debug_module.disable()
         output_module.disable()
-
+        output_module.send_result_to_pipe(conn)
 
         with open(f'runon_{self.line_counters[id]-1}.txt', 'w') as sys.stdout:
             for _ in self.sims[id]:
