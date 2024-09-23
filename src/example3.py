@@ -8,13 +8,17 @@ from CqSim.Cqsim_plus import Cqsim_plus
 # Create Cqsim plus instance.
 cqp = Cqsim_plus()
 
-id1 = cqp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf')
-id2 = cqp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf')
-id3 = cqp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test3.swf')
+# Cluster 0 which runs on 1.5x (50% slower)
+id1 = cqp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf', proc_count=100)
+cqp.set_job_run_scale_factor(id1, 1.5)
+
+# Cluster 1 which runs on 1x
+id2 = cqp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf', proc_count=100)
+cqp.set_job_run_scale_factor(id2, 1.0)
 
 # Run all simulators until the end
-while not cqp.check_all_sim_ended(ids=[id1, id2, id3]):
+while not cqp.check_all_sim_ended(ids=[id1, id2]):
 
     # Step all simulators by one line in job file
-    for id in [id1, id2, id3]:
+    for id in [id1, id2]:
         cqp.line_step(id)

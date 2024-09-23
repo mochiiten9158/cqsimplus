@@ -28,13 +28,28 @@ import Extend.SWF.Node_struc_SWF as node_struc_ext
 __metaclass__ = type
 
 class Cqsim_plus:
-    '''
+    """
     CQsim plus
 
     Class for CQSim plus core features.
-    '''
+    """
 
-    def __init__(self, monitor = 500) -> None:
+    def __init__(self) -> None:
+        """Initialize CQSim plus.
+
+        Args:
+
+        Attributes:
+            monitor: interval for monitor event. (default: 500)
+            sims: List of CQSim generator instances.
+            line_counters: List of line counts in the job file for each cqsim instance.
+            end_flags: List of end flags for each cqsim insance, denothing whether the simuation has ended.
+            sim_names: List of names for each cqsim instance.
+            sim_modules: List of CQSim modules for each cqsim instance.
+            exp_directory: The directory for output files for all simulators.
+            traces: A map from trace paths to simulator ids, prevents the parsing of a trace that was already parsed.
+        """
+        
         self.monitor = 500
         self.sims = []
         self.line_counters=[]
@@ -44,26 +59,46 @@ class Cqsim_plus:
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
 
+
     def check_sim_ended(self, id):
+        """
+        Checks if the simulator with given id has ended.
+        """
         return self.end_flags[id]
     
+
     def check_all_sim_ended(self, ids):
+        """
+        Checks if all the simulators with given ids have ended.
+
+        Returns false, if even one of the simulators havent finished.
+        """
         result = True
         for id in ids:
             result = result and self.end_flags[id]
-        print(result)
         return result
     
-    def single_cqsim(self, trace_dir, trace_file):
-        '''
-        Returns the id of a single cqsim instance.
+    def single_cqsim(self, trace_dir, trace_file, proc_count):
+        """
+        Sets up a single cqsim instance.
 
-        The cqsim instance will get a fresh set of modules.
-        '''
+        Parameters
+        ----------
+        trace_dir : str
+            A path to the directory where the trace file is located.
+        trace_file : str
+            The trace file name to read.
+        proc_count: int
+            The amount of processes for the simualted cluster.
+
+        Returns
+        -------
+        sim_id : int
+            An integer id of the newly created cqsim instance.
+        """
         sim_name = get_random_name()
         sim_id = len(self.sims)
 
-        # trace_dir = '../data/InputFiles'
         output_dir = f'{self.exp_directory}/Results'
         debug_dir = f'{self.exp_directory}/Debug'
         fmt_dir = f'{self.exp_directory}/Fmt'
@@ -71,10 +106,8 @@ class Cqsim_plus:
         for dir in [output_dir, debug_dir, fmt_dir]:
             if not os.path.exists(dir):
                 os.makedirs(dir)
-        
-        # trace_file = 'test.swf'
+
         trace_name = trace_file.split('.')[0]
-        proc_count = 100
 
         output_sys_file = f'{trace_name}_{sim_id}.ult'
         output_adapt_file = f'{trace_name}_{sim_id}.adp'
@@ -86,7 +119,6 @@ class Cqsim_plus:
         module_debug = Class_Debug_log.Debug_log(
             lvl=3,
             show=2,
-            # TODO: Change this because multiple simulators might be running the same trace
             path= f'{debug_dir}/{debug_log}',
             log_freq=1
         )
@@ -215,10 +247,19 @@ class Cqsim_plus:
 
     
     def line_step(self, id) -> None:
-        '''
-        Advances the simulator with given id by one
-        line in the job file.
-        '''
+        """
+        Advances the simulator with given id by one line in the job file.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        None
+        """
+
         try:
             next(self.sims[id])
             self.line_counters[id] += 1
@@ -227,26 +268,47 @@ class Cqsim_plus:
 
 
     def line_step_run_on(self, id):
-        '''
-        Advances the simulator with given id by one
-        line in the job file. In a child process, runs the simualtion
-        from here until the end withtout revealing new jobs to the
-        simulator in the child.
+        """
+        Advances the simulator with given id by one line in the job file. 
+        Then in a separete child process, runs the simulation until the end
+        without reading the next jobs.
 
-        For now the child's stdout is directed to a file. See _line_step_run_on() helper
-        for more details.
-        '''
+        For now the child's stdout is directed to a file. 
+        See _line_step_run_on() helper for more details.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        None
+        """
 
         self.line_step(id)
-
         p = Process(target=self._line_step_run_on_child, args=(id,))
         p.start()
         p.join()
 
 
     def _line_step_run_on_child(self, id):
+        """
+        Helper to run a certain cqsim instance in a child process.
+        This allows running a copy of an existing simulator, but
+        with modified inputs at certain time steps.
 
-        # Modify the mask so that later jobs arent reads
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        None
+        """
+
+        # Modify the mask so that later jobs are not read.
         job_module = self.sim_modules[id].module['job']
 
         job_module.update_max_lines(self.line_counters[id])
@@ -254,3 +316,43 @@ class Cqsim_plus:
         with open(f'runon_{self.line_counters[id]-1}.txt', 'w') as sys.stdout:
             for _ in self.sims[id]:
                 pass
+    
+    def set_job_run_scale_factor(self, id, scale_factor):
+        """
+        For a certain simulator, this sets the factor by which the job runtime
+        should scaled.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+        
+        scale_factor: float
+            The factor the scale the job runtimes by
+
+        Returns
+        -------
+        None
+        """
+        job_module = self.sim_modules[id].module['job']
+        job_module.job_runtime_scale_factor = scale_factor
+
+    def set_job_walltime_scale_factor(self, id, scale_factor):
+        """
+        For a certain simulator, this sets the factor by which the job walltime
+        should scaled.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+        
+        scale_factor: float
+            The factor the scale the job runtimes by
+
+        Returns
+        -------
+        None
+        """
+        job_module = self.sim_modules[id].module['job']
+        job_module.job_walltime_scale_factor = scale_factor
