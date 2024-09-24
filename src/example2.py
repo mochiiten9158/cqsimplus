@@ -20,9 +20,7 @@ while not cqsimp.check_sim_ended(id):
 
     # Advance simulation by 1 job
     cqsimp.line_step(id)
-
-    # Advance same sim to the end in child
-    result = cqsimp.run_on(id)
+    result = cqsimp.line_step_run_on(id)
 
     print(result)
 

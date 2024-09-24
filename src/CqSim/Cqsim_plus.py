@@ -207,7 +207,8 @@ class Cqsim_plus:
             job_file_path=f'{fmt_dir}/{fmt_job_file}',
             debug=module_debug,
             real_start_time=0,
-            virtual_start_time=0
+            virtual_start_time=0,
+            max_lines=1000
         )
         module_job_trace.import_job_config(f'{fmt_dir}/{fmt_job_config_file}')
 
@@ -380,6 +381,61 @@ class Cqsim_plus:
         p.join()
         parent_conn.close()
         return result_file_lines
+    
+    def line_step_run_on_fork_based(self, id):
+        """
+        Advances the simulator with given id by one line in the job file. 
+        Then in a separete child process, runs the simulation until the end
+        without reading the next jobs.
+
+        For now the child's stdout is directed to a file. 
+        See _line_step_run_on() helper for more details.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        None
+        """
+        parent_conn, child_conn = Pipe()
+
+        # p = Process(target=self._line_step_run_on_child, args=(id, child_conn,))
+        # p.start()
+        # child_conn.close()
+        # result_file_lines = []
+        # while True:
+        #     try:
+        #         msg = parent_conn.recv()
+        #         result_file_lines.append(msg)
+        #     except EOFError:  # Child closed the connection
+        #         break
+        # p.join()
+        # parent_conn.close()
+        # return result_file_lines
+    
+        pid = os.fork()
+
+        if pid == 0:  # Child process
+            parent_conn.close()  # Close the parent's end in the child
+            self._line_step_run_on_child(id, child_conn)
+            os._exit(0)  # Ensure clean exit from child
+
+        else:  # Parent process
+            child_conn.close()  # Close the child's end in the parent
+            result_file_lines = []
+            while True:
+                try:
+                    msg = parent_conn.recv()
+                    result_file_lines.append(msg)
+                except EOFError:
+                    break
+
+            _, status = os.waitpid(pid, 0)  # Wait for child to finish
+            parent_conn.close()
+            return result_file_lines
 
 
     def _line_step_run_on_child(self, id, conn):

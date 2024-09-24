@@ -1,5 +1,5 @@
 import IOModule.Log_print as Log_print
-
+import sys
 __metaclass__ = type
 
 time_stamps = []
@@ -263,6 +263,7 @@ class Cqsim_sim:
     def finish(self, job_index):
         #self.debug.debug("# "+self.myInfo+" -- finish",5) 
         self.debug.debug("[Finish]  "+str(job_index),3)
+        # print('Finish: ', job_index, file=sys.stderr)
         self.module['node'].node_release(job_index,self.currentTime)
         self.module['job'].job_finish(job_index)
         self.module['output'].print_result(self.module['job'], job_index)
