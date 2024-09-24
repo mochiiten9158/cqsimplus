@@ -529,6 +529,9 @@ class Cqsim_plus:
     def get_mask(self, id):
         return self.sim_modules[id].module['job'].mask
     
+    def set_mask(self, id, mask):
+        self.sim_modules[id].module['job'].mask = mask
+    
     def get_line_number(self, id):
         return self.sim_modules[id].module['job'].line_number
     
