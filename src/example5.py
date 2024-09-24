@@ -12,8 +12,16 @@ cqsimp = Cqsim_plus()
 
 # Start a single cqsim simulator.
 # Returns the id of a newly created cqsim instance
-id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'theta_1000.swf', proc_count=4360)
+id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'test.swf', proc_count=100)
 
 # Run it while waiting for user input at each step.
-while not cqsimp.check_sim_ended(id):
-    cqsimp.line_step(id)
+cqsimp.disable_next_job(id)
+cqsimp.line_step(id)
+print(cqsimp.line_step_run_on(id))
+input('Press enter to continue...')
+
+for _ in cqsimp.sims[id]:
+    pass
+
+
+    

@@ -80,6 +80,7 @@ class Job_trace:
         self.job_counter = 0
         self.num_delete_jobs = 0
         self.context = None
+        self.job_skips = 0
 
 
         # If the mask is not defnied, initialze the mask to read all jobs.
@@ -93,23 +94,60 @@ class Job_trace:
     def update_max_lines(self, max_lines):
         self.max_lines = max_lines
 
-        # If the mask is larger than max lines, truncate it.
+        # If the mask is larger than max_lines, truncate it.
         if len(self.mask) > self.max_lines:
             self.mask = self.mask[:self.max_lines]
 
-        # If the mask is smaller than max lines, truncate it.
+        # If the mask is smaller than max_lines, set max lines to mask length
         if len(self.mask) < self.max_lines:
-            # TODO: Implement
-            # Does nothing
-            pass
+            self.max_lines = len(self.mask)
+
+    def disable_job(self, line_counter):
+        if self.line_number < len(self.mask):
+            self.mask[line_counter] = 0
+    
+    def enable_job(self, line_counter):
+        if self.line_number < len(self.mask):
+            self.mask[line_counter] = 1 
+
+    def read_line_at_line_offset(self, file_path, line_offset):
+        """
+        Reads the line in a text file at a specified line offset (0-indexed).
+
+        Args:
+            file_path (str): The path to the text file.
+            line_offset (int): The 0-indexed line offset to read (0 for the first line, 1 for the second, etc.).
+
+        Returns:
+            str: The line found at the specified line offset, or None if the offset is beyond the number of lines in the file.
+        """
+        line = "dfsds"
+        with open(file_path, 'r') as f:
+            for _ in range(line_offset):
+                line = f.readline()
+                if not line:  # Reached end of file before desired offset
+                    return None
+
+            return line
+
+
 
     def dynamic_read_job_file(self):
         """
         Reads the next line from the job file, skips lines accroding to the mask.
         The line is parsed for job data and added to the job trace.
         """
+        if self.line_number == 0:
+            self.job_fd =  open(self.job_file_path,'r')
+
+
         # Read the next job line.
         job_line = self.job_fd.readline()
+        job_line2 = self.read_line_at_line_offset(self.job_file_path, self.line_number + 1)
+        import sys  
+        # print(f'jobdata:{job_line}', file=sys.stderr)
+        # print(f'jobdata2:{job_line2}', file=sys.stderr)
+        job_line = job_line2
 
         # Check for end of file.
         if not job_line:
@@ -120,14 +158,15 @@ class Job_trace:
         if self.line_number >= len(self.mask):
             return -1
 
-        # Skip the line if the mask is 0 and read the next line
+        # Skip the line if the mask is 0, yield again in parent on -2
         if self.mask[self.line_number] == 0:
             self.line_number += 1
-            return self.dynamic_read_job()
+            return -2
             
 
         regex_str = "([^;\\n]*)[;\\n]"
         job_data = re.findall(regex_str, job_line)
+        job_data = job_line.split(';')
 
         
         # If the real start time is not given, use the submit time of the first job.
@@ -135,8 +174,6 @@ class Job_trace:
             # Store the submit time of the first job.
             if self.line_number == 0:
                 self.real_start_time = float(job_data[1])
-            
-
         job_info = {'id':int(job_data[0]),\
                     'submit':self.density*(float(job_data[1])-self.real_start_time) + self.virtual_start_time,\
                     'wait':float(job_data[2]),\

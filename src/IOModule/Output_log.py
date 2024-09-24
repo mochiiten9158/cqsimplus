@@ -1,3 +1,4 @@
+import pandas as pd
 import IOModule.Log_print as Log_print
 
 __metaclass__ = type
@@ -10,14 +11,18 @@ class Output_log:
         self.job_buf = []
         self.log_freq = log_freq
         self.job_turnarounds = {}
+        self.results = []
         #print('log_freq+++++++',self.log_freq)
         self.reset_output()
         self.pipe_connection = None
         self.use_pipe = False
 
     def send_result_to_pipe(self, pipe_connection):
-        self.pipe_connection = pipe_connection
-        self.use_pipe = True
+        # self.use_pipe = True
+        # self.pipe_connection = pipe_connection
+        for result in self.results:
+            pipe_connection.send(result)
+
 
     
     def disable(self):
@@ -136,16 +141,14 @@ class Output_log:
                 context += str(temp_job['start'])
                 context += sep_sign
                 context += str(temp_job['end'])
-                self.job_turnarounds[temp_job['id']] = {
-                    "runtime" : temp_job['run'],
-                    "turnaround" : temp_job['end'] - temp_job['submit']
-                }
+                self.results.append(context)
                 self.job_result.log_print(context,1)
-                if self.use_pipe:
-                    self.pipe_connection.send(context)
+                # if self.use_pipe:
+                #     self.pipe_connection.send(context)
             self.job_result.file_close()
             self.job_buf = []
-    
+
+
     def get_result():
         '''
         Returns a data frame with results after simulation

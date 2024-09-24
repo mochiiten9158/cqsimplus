@@ -81,8 +81,10 @@ class Cqsim_sim:
         # fread jobs to job list and buffer to event_list dynamically
         if self.read_job_pointer < 0:
             return -1
-        temp_return = self.module['job'].dynamic_read_job_file()
-        yield 0
+        temp_return = -2
+        while temp_return == -2:
+            yield 0
+            temp_return = self.module['job'].dynamic_read_job_file()
         i = self.read_job_pointer
         #while (i < len(self.module['job'].job_info())):
         while (i < self.module['job'].job_info_len()):

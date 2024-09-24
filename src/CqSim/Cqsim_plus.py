@@ -57,8 +57,10 @@ class Cqsim_plus:
         self.end_flags = []
         self.sim_names = []
         self.sim_modules = []
+        self.sim_procs = []
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
+        self.disable_child_stdout = False
 
 
     def check_sim_ended(self, id):
@@ -79,12 +81,46 @@ class Cqsim_plus:
             result = result and self.end_flags[id]
         return result
 
-    def get_job_data(self, id):
+    def get_job_data(self, trace_dir, trace_file):
         """
-        Returns the job data for some simulator.
+        Get the job data from some trace.
+
+        Parameters
+        ----------
+        trace_dir : str
+            A path to the directory where the trace file is located.
+        trace_file : str
+            The trace file name to read.
+
+        Returns
+        -------
+        job_ids : lits[int]
+            List of job ids.
+        job_procs : list[int]
+            List of processes requested for each job.
         """
+        module_debug = Class_Debug_log.Debug_log(
+            lvl=0,
+            show=0,
+            path= f'/dev/null',
+            log_freq=1
+        )
+        module_debug.disable()
+        save_name_j = f'/dev/null'
+        config_name_j = f'/dev/null'
+        module_filter_job = filter_job_ext.Filter_job_SWF(
+            trace=f'{trace_dir}/{trace_file}', 
+            save=save_name_j, 
+            config=config_name_j, 
+            debug=module_debug
+        )
+        module_filter_job.feed_job_trace()
+        module_filter_job.output_job_config()
 
+        job_ids = module_filter_job.job_ids
+        job_procs = module_filter_job.job_procs
 
+        return job_ids, job_procs
 
 
     def single_cqsim(self, trace_dir, trace_file, proc_count):
@@ -245,6 +281,7 @@ class Cqsim_plus:
         self.sim_names.append(sim_name)
         self.sim_modules.append(module_sim)
         self.traces[f'{trace_dir}/{trace_file}'] = sim_id
+        self.sim_procs.append(proc_count)
 
         return sim_id
 
@@ -262,12 +299,52 @@ class Cqsim_plus:
         -------
         None
         """
-
         try:
             next(self.sims[id])
             self.line_counters[id] += 1
         except StopIteration:
             self.end_flags[id] = True
+
+    def run_on(self, id):
+        parent_conn, child_conn = Pipe()
+
+        p = Process(target=self._run_on_child, args=(id, child_conn,))
+        p.start()
+        child_conn.close()
+        result_file_lines = []
+        while True:
+            try:
+                msg = parent_conn.recv()
+                result_file_lines.append(msg)
+            except EOFError:  # Child closed the connection
+                break
+        p.join()
+        parent_conn.close()
+        return result_file_lines
+    
+    def _run_on_child(self, id, conn):
+
+        # Modify the job module so that no new jobs are read.
+        job_module = self.sim_modules[id].module['job']
+        job_module.update_max_lines(self.line_counters[id])
+
+        # Disable outputs of debug, log and output modules.
+        debug_module = self.sim_modules[id].module['debug']
+        output_module = self.sim_modules[id].module['output']
+        debug_module.disable()
+        output_module.disable()
+
+        if self.disable_child_stdout:
+            with open(os.devnull, 'w') as sys.stdout:
+                while not self.check_sim_ended(id):
+                    self.line_step(id)
+        else:
+            with open(f'runon_{self.line_counters[id]}.txt', 'w') as sys.stdout:
+                while not self.check_sim_ended(id):
+                    self.line_step(id)
+        output_module.send_result_to_pipe(conn)
+        conn.close()
+
 
 
     def line_step_run_on(self, id):
@@ -290,12 +367,9 @@ class Cqsim_plus:
         """
         parent_conn, child_conn = Pipe()
 
-        self.line_step(id)
-
         p = Process(target=self._line_step_run_on_child, args=(id, child_conn,))
         p.start()
         child_conn.close()
-
         result_file_lines = []
         while True:
             try:
@@ -304,6 +378,7 @@ class Cqsim_plus:
             except EOFError:  # Child closed the connection
                 break
         p.join()
+        parent_conn.close()
         return result_file_lines
 
 
@@ -318,8 +393,6 @@ class Cqsim_plus:
         id : int
             id of a cqsim instance stored in self.sims
 
-            
-        TODO: Return the turnaround time of the LAST job that was run.
         Returns
         -------
         None
@@ -327,18 +400,24 @@ class Cqsim_plus:
 
         # Modify the job module so that no new jobs are read.
         job_module = self.sim_modules[id].module['job']
-        job_module.update_max_lines(self.line_counters[id])
+        job_module.update_max_lines(self.line_counters[id] + 1)
 
         # Disable outputs of debug, log and output modules.
         debug_module = self.sim_modules[id].module['debug']
         output_module = self.sim_modules[id].module['output']
         debug_module.disable()
         output_module.disable()
-        output_module.send_result_to_pipe(conn)
 
-        with open(f'runon_{self.line_counters[id]-1}.txt', 'w') as sys.stdout:
-            for _ in self.sims[id]:
-                pass
+        if self.disable_child_stdout:
+            with open(os.devnull, 'w') as sys.stdout:
+                while not self.check_sim_ended(id):
+                    self.line_step(id)
+        else:
+            with open(f'runon_{self.line_counters[id]}.txt', 'w') as sys.stdout:
+                while not self.check_sim_ended(id):
+                    self.line_step(id)
+        output_module.send_result_to_pipe(conn)
+        conn.close()
 
 
     def set_job_run_scale_factor(self, id, scale_factor):
@@ -381,3 +460,22 @@ class Cqsim_plus:
         """
         job_module = self.sim_modules[id].module['job']
         job_module.job_walltime_scale_factor = scale_factor
+    
+    def disable_next_job(self, id):
+        job_module = self.sim_modules[id].module['job']
+        job_module.disable_job(self.line_counters[id])
+
+    
+    def enable_next_job(self, id):
+        job_module = self.sim_modules[id].module['job']
+        job_module.enable_job(self.line_counters[id])
+    
+    def get_mask(self, id):
+        return self.sim_modules[id].module['job'].mask
+    
+    def get_line_number(self, id):
+        return self.sim_modules[id].module['job'].line_number
+    
+    def get_results(self, id):
+        output_module = self.sim_modules[id].module['output']
+        return output_module.results
