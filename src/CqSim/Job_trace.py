@@ -91,16 +91,18 @@ class Job_trace:
         if len(self.mask) > self.max_lines:
             self.mask = self.mask[:self.max_lines]
 
-    def update_max_lines(self, max_lines):
+    def update_max_lines(self, max_lines, default_bit = 1):
         self.max_lines = max_lines
 
         # If the mask is larger than max_lines, truncate it.
         if len(self.mask) > self.max_lines:
             self.mask = self.mask[:self.max_lines]
 
-        # If the mask is smaller than max_lines, set max lines to mask length
+        # If the mask is smaller than max_lines, expand the mask.
         if len(self.mask) < self.max_lines:
-            self.max_lines = len(self.mask)
+            difference = self.max_lines - len(self.mask)
+            for i in range(difference):
+                self.mask.append(default_bit)
 
     def disable_job(self, line_counter):
         if self.line_number < len(self.mask):
@@ -142,11 +144,12 @@ class Job_trace:
 
 
         # Read the next job line.
+        # TODO: Debug why this read incomplete lines in child processes?
+        # Problem with file descriptors?
         job_line = self.job_fd.readline()
+
+
         job_line2 = self.read_line_at_line_offset(self.job_file_path, self.line_number + 1)
-        import sys  
-        # print(f'jobdata:{job_line}', file=sys.stderr)
-        # print(f'jobdata2:{job_line2}', file=sys.stderr)
         job_line = job_line2
 
         # Check for end of file.

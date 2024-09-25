@@ -476,6 +476,11 @@ class Cqsim_plus:
         conn.close()
 
 
+    def set_max_lines(self, id, max_lines):
+        job_module = self.sim_modules[id].module['job']
+        job_module.update_max_lines(max_lines)
+
+
     def set_job_run_scale_factor(self, id, scale_factor):
         """
         For a certain simulator, this sets the factor by which the job runtime
