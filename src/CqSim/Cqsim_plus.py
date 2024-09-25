@@ -49,6 +49,7 @@ class Cqsim_plus:
             sim_modules: List of CQSim modules for each cqsim instance.
             exp_directory: The directory for output files for all simulators.
             traces: A map from trace paths to simulator ids, prevents the parsing of a trace that was already parsed.
+            disable_chile_stdout: Flag to disable the stdout of the child. (default: False)
         """
         
         self.monitor = 500
@@ -58,6 +59,7 @@ class Cqsim_plus:
         self.sim_names = []
         self.sim_modules = []
         self.sim_procs = []
+        # TODO: For now, each cqsim instance's IO folder is given a random name
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
         self.disable_child_stdout = False
@@ -68,18 +70,19 @@ class Cqsim_plus:
         Checks if the simulator with given id has ended.
         """
         return self.end_flags[id]
-    
+
 
     def check_all_sim_ended(self, ids):
         """
         Checks if all the simulators with given ids have ended.
 
-        Returns false, if even one of the simulators havent finished.
+        Returns true, when all simulators have finished.
         """
         result = True
         for id in ids:
             result = result and self.end_flags[id]
         return result
+
 
     def get_job_data(self, trace_dir, trace_file):
         """
@@ -286,10 +289,10 @@ class Cqsim_plus:
 
         return sim_id
 
-    
+
     def line_step(self, id) -> None:
         """
-        Advances the simulator with given id by one line in the job file.
+        Advances a certain simulator with given id by one line in the job file.
 
         Parameters
         ----------
@@ -306,32 +309,68 @@ class Cqsim_plus:
         except StopIteration:
             self.end_flags[id] = True
 
+
     def run_on(self, id):
+        """
+        Creates a copy of the simulator with given id, and
+        runs it to completion without new job input.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        results: list[str]
+           Job results of the copied simulator.
+
+        """
         parent_conn, child_conn = Pipe()
 
         p = Process(target=self._run_on_child, args=(id, child_conn,))
         p.start()
         child_conn.close()
-        result_file_lines = []
+        results = []
         while True:
             try:
                 msg = parent_conn.recv()
-                result_file_lines.append(msg)
+                results.append(msg)
             except EOFError:  # Child closed the connection
                 break
         p.join()
         parent_conn.close()
-        return result_file_lines
-    
+        return results
+
+
     def _run_on_child(self, id, conn):
+        """
+        This function is a helper for run_on(). The function is run inside a 
+        child process which contains the copy of a simulator. The copied
+        simulator is run to completion without new job input.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+        
+        conn:
+            piped connection for the child to send results back to parent process.
+
+        Returns
+        -------
+        None
+        """
+        
+        # Get the modules
+        job_module = self.sim_modules[id].module['job']
+        debug_module = self.sim_modules[id].module['debug']
+        output_module = self.sim_modules[id].module['output']
 
         # Modify the job module so that no new jobs are read.
-        job_module = self.sim_modules[id].module['job']
         job_module.update_max_lines(self.line_counters[id])
 
         # Disable outputs of debug, log and output modules.
-        debug_module = self.sim_modules[id].module['debug']
-        output_module = self.sim_modules[id].module['output']
         debug_module.disable()
         output_module.disable()
 
@@ -347,15 +386,11 @@ class Cqsim_plus:
         conn.close()
 
 
-
     def line_step_run_on(self, id):
         """
-        Advances the simulator with given id by one line in the job file. 
-        Then in a separete child process, runs the simulation until the end
-        without reading the next jobs.
-
-        For now the child's stdout is directed to a file. 
-        See _line_step_run_on() helper for more details.
+        Creates a copy of the simulator with given id. The copied
+        simulator is advanced by one step in the job file then run
+        to completion withtout any new jobs.
 
         Parameters
         ----------
@@ -364,32 +399,30 @@ class Cqsim_plus:
 
         Returns
         -------
-        None
+        results: list[str]
+           Job results of the copied simulator.
         """
         parent_conn, child_conn = Pipe()
 
         p = Process(target=self._line_step_run_on_child, args=(id, child_conn,))
         p.start()
         child_conn.close()
-        result_file_lines = []
+        results = []
         while True:
             try:
                 msg = parent_conn.recv()
-                result_file_lines.append(msg)
+                results.append(msg)
             except EOFError:  # Child closed the connection
                 break
         p.join()
         parent_conn.close()
-        return result_file_lines
-    
+        return results
+
+
     def line_step_run_on_fork_based(self, id):
         """
-        Advances the simulator with given id by one line in the job file. 
-        Then in a separete child process, runs the simulation until the end
-        without reading the next jobs.
-
-        For now the child's stdout is directed to a file. 
-        See _line_step_run_on() helper for more details.
+        Same as line_step_run_on(), but used tradiation fork() instead
+        of multiprocessing.
 
         Parameters
         ----------
@@ -398,24 +431,10 @@ class Cqsim_plus:
 
         Returns
         -------
-        None
+        results: list[str]
+           Job results of the copied simulator.
         """
         parent_conn, child_conn = Pipe()
-
-        # p = Process(target=self._line_step_run_on_child, args=(id, child_conn,))
-        # p.start()
-        # child_conn.close()
-        # result_file_lines = []
-        # while True:
-        #     try:
-        #         msg = parent_conn.recv()
-        #         result_file_lines.append(msg)
-        #     except EOFError:  # Child closed the connection
-        #         break
-        # p.join()
-        # parent_conn.close()
-        # return result_file_lines
-    
         pid = os.fork()
 
         if pid == 0:  # Child process
@@ -440,14 +459,18 @@ class Cqsim_plus:
 
     def _line_step_run_on_child(self, id, conn):
         """
-        Helper to run a certain cqsim instance in a child process.
-        This allows running a copy of an existing simulator, but
-        with modified inputs at certain time steps.
+        This function is a helper for line_step_run_on(). The function is run 
+        inside a child process which contains the copy of a simulator. The copied
+        simulator is advanced by one job then run to completion without any new
+        job input.
 
         Parameters
         ----------
         id : int
             id of a cqsim instance stored in self.sims
+        
+        conn:
+            piped connection for the child to send results back to parent process.
 
         Returns
         -------
@@ -477,6 +500,23 @@ class Cqsim_plus:
 
 
     def set_max_lines(self, id, max_lines):
+        """
+        For a certain simulator, set the max_lines parameter in the 
+        job module. The max_line parameters controls the maximum
+        number of lines to read from the job file.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims.
+        
+        max_lines: int
+            Maximum number of lines to read from the job file.
+
+        Returns
+        -------
+        None
+        """
         job_module = self.sim_modules[id].module['job']
         job_module.update_max_lines(max_lines)
 
@@ -484,7 +524,7 @@ class Cqsim_plus:
     def set_job_run_scale_factor(self, id, scale_factor):
         """
         For a certain simulator, this sets the factor by which the job runtime
-        should scaled.
+        should be scaled.
 
         Parameters
         ----------
@@ -505,7 +545,7 @@ class Cqsim_plus:
     def set_job_walltime_scale_factor(self, id, scale_factor):
         """
         For a certain simulator, this sets the factor by which the job walltime
-        should scaled.
+        should be scaled.
 
         Parameters
         ----------
@@ -523,23 +563,90 @@ class Cqsim_plus:
         job_module.job_walltime_scale_factor = scale_factor
     
     def disable_next_job(self, id):
+        """
+        For a certain simulator, this sets the mask to 0 for the next
+        job.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        """
         job_module = self.sim_modules[id].module['job']
         job_module.disable_job(self.line_counters[id])
 
     
     def enable_next_job(self, id):
+        """
+        For a certain simulator, this sets the mask to 1 for the next
+        job.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims
+
+        Returns
+        -------
+        """
         job_module = self.sim_modules[id].module['job']
         job_module.enable_job(self.line_counters[id])
     
-    def get_mask(self, id):
-        return self.sim_modules[id].module['job'].mask
+    def get_job_file_mask(self, id):
+        """
+        Get the job file mask for some simulator.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims.
+
+        Returns
+        -------
+        mask: list[int]
+            A list of 0s and 1s per line in the job file.
+        """
+        mask: list[int] = self.sim_modules[id].module['job'].mask
+        return mask
     
-    def set_mask(self, id, mask):
+    def set_job_file_mask(self, id, mask):
+        """
+        For a certain simulator, this sets the mask to 1 for the next.
+        job.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims.
+
+        mask: list[int]
+            A list of 0s and 1s per line in the job file.
+
+        Returns
+        -------
+        """
         self.sim_modules[id].module['job'].mask = mask
+
     
-    def get_line_number(self, id):
-        return self.sim_modules[id].module['job'].line_number
-    
-    def get_results(self, id):
+    def get_job_results(self, id):
+        """
+        For a certain simulator, get job relted results.
+
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims.
+
+        Returns
+        -------
+        results: list[str]
+           For a certain simulator, this returns the results from 
+           the output module. The same can be found in the .rst file.
+
+        """
         output_module = self.sim_modules[id].module['output']
-        return output_module.results
+        results: list[str] = output_module.results
+        return results
