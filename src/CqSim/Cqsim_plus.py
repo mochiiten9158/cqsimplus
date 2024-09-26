@@ -35,7 +35,7 @@ class Cqsim_plus:
     """
 
 
-    def __init__(self) -> None:
+    def __init__(self, tag = None) -> None:
         """Initialize CQSim plus.
 
         Args:
@@ -49,7 +49,8 @@ class Cqsim_plus:
             sim_modules: List of CQSim modules for each cqsim instance.
             exp_directory: The directory for output files for all simulators.
             traces: A map from trace paths to simulator ids, prevents the parsing of a trace that was already parsed.
-            disable_chile_stdout: Flag to disable the stdout of the child. (default: False)
+            disable_child_stdout: Flag to disable the stdout of the child. (default: False)
+            tag: A string used to create output folder under ../data/Results/
         """
         
         self.monitor = 500
@@ -63,6 +64,14 @@ class Cqsim_plus:
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
         self.disable_child_stdout = False
+        self.tag = tag
+        if self.tag != None:
+            self.exp_directory = f'../data/Results/{self.tag}'
+
+    def set_sim_times(self, id, real_start_time, virtual_start_time):
+        job_module = self.sim_modules[id].module['job']
+        job_module.real_start_time = real_start_time
+        job_module.virtual_start_time = virtual_start_time
 
 
     def check_sim_ended(self, id):
@@ -650,3 +659,30 @@ class Cqsim_plus:
         output_module = self.sim_modules[id].module['output']
         results: list[str] = output_module.results
         return results
+    
+    def get_job_submits(self, trace_dir, trace_file):
+        module_debug = Class_Debug_log.Debug_log(
+            lvl=0,
+            show=0,
+            path= f'/dev/null',
+            log_freq=1
+        )
+        module_debug.disable()
+        save_name_j = f'/dev/null'
+        config_name_j = f'/dev/null'
+        module_filter_job = filter_job_ext.Filter_job_SWF(
+            trace=f'{trace_dir}/{trace_file}', 
+            save=save_name_j, 
+            config=config_name_j, 
+            debug=module_debug
+        )
+        module_filter_job.feed_job_trace()
+        module_filter_job.output_job_config()
+
+        job_submits = module_filter_job.job_submits
+        return job_submits
+    
+
+    def print_results(self, id):
+        output_module = self.sim_modules[id].module['output']
+        output_module.print_saved_results()

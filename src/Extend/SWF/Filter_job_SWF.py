@@ -16,6 +16,8 @@ class Filter_job_SWF(filter_job.Filter_job):
         self.config_data.append({'name_config':'start_offset','name':None,'value':''})
         self.job_ids = []
         self.job_procs = []
+        self.job_data = []
+        self.job_submits = []
 
     def feed_job_trace_with_mask_speed(self, mask, mask_max_i,speed):
         if not self.save:
@@ -366,6 +368,7 @@ class Filter_job_SWF(filter_job.Filter_job):
                         f2.write("\n")
                         self.job_ids.append(tempInfo['id'])
                         self.job_procs.append(tempInfo['usedProc'])
+                        self.job_submits.append(tempInfo['submit'])
                         #self.jobList.append(tempInfo)
                         temp_readNum+=1
                         #job_num += 1

@@ -1,5 +1,26 @@
 import builtins
 import contextlib
+import random
+
+def probabilistic_true(y):
+  """
+  Returns True with a probability of y.
+
+  Args:
+      y: A float between 0 and 1 representing the desired probability of returning True.
+
+  Returns:
+      True with a probability of y, otherwise False.
+  """
+
+  # Generate a random float between 0 and 1
+  random_number = random.random()
+
+  # Compare the random number to the input probability
+  if random_number < y:
+    return True
+  else:
+    return False
 
 def get_elements_in_range(data_list, index, range):
   """

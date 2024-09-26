@@ -16,4 +16,5 @@ id = cqsimp.single_cqsim(trace_dir = '../data/InputFiles', trace_file = 'theta_1
 
 # Run it while waiting for user input at each step.
 while not cqsimp.check_sim_ended(id):
+    input('Press enter to continue...')
     cqsimp.line_step(id)

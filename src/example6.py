@@ -65,7 +65,7 @@ def exp():
     # proc1 = 100
     # proc2 = 100
 
-    file = 'theta_1000.swf'
+    file = 'theta_2022.swf'
     proc1 = 2180
     proc2 = 2180
     # Start a single cqsim simulator.
@@ -81,6 +81,7 @@ def exp():
         proc_count=proc2)
 
     cqp.set_job_run_scale_factor(id2, 1.5)
+    cqp.set_job_walltime_scale_factor(id2, 1.5)
 
     sim_ids = [id1, id2]
 
@@ -88,6 +89,8 @@ def exp():
         trace_dir = '../data/InputFiles', 
         trace_file = file)
 
+    for sim in sim_ids:
+       cqp.set_max_lines(sim, len(job_ids))
 
     # results = cqp.line_step_run_on(id1)
     # print(results)
@@ -97,7 +100,7 @@ def exp():
     # print(last_job_turnaround)
 
     for i in trange(len(job_ids)):
-        print('**************')
+        # print('**************')
 
         valid_sim_ids = []
         for id in sim_ids:
@@ -112,7 +115,8 @@ def exp():
         if len(valid_sim_ids) == 0:
             for sim_id in sim_ids:
                 cqp.disable_next_job(sim_id)
-                cqp.line_step(sim_id)
+                with disable_print():
+                    cqp.line_step(sim_id)
             continue
 
         selected_sim_id = random.choice(valid_sim_ids)
@@ -122,15 +126,15 @@ def exp():
                 cqp.enable_next_job(sim_id)            
             else:
                 cqp.disable_next_job(sim_id)
-            print(f'Cluster {sim_id}, line coutner = {cqp.line_counters[sim_id]}')
-            print(get_elements_in_range(cqp.get_mask(sim_id), cqp.line_counters[sim_id], 2))
+            # print(f'Cluster {sim_id}, line coutner = {cqp.line_counters[sim_id]}')
+            # print(get_elements_in_range(cqp.get_job_file_mask(sim_id), cqp.line_counters[sim_id], 2))
             with disable_print():
                 cqp.line_step(sim_id)
 
 
-        print('Job number:', i)
-        print('Selected cluster: ', selected_sim_id)
-        print('**************\n\n')
+        # print('Job number:', i)
+        # print('Selected cluster: ', selected_sim_id)
+        # print('**************\n\n')
 
 
     # Run all the simulations until complete

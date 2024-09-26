@@ -148,6 +148,12 @@ class Output_log:
             self.job_result.file_close()
             self.job_buf = []
 
+    def print_saved_results(self):
+        self.job_result.file_open()
+        for result in self.results:
+            self.job_result.log_print(result,1)
+        self.job_result.file_close()
+
 
     def get_result():
         '''
