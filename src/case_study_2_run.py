@@ -16,7 +16,7 @@ import tqdm
 from utils import probabilistic_true, disable_print
 import pandas as pd
 import random
-
+import multiprocessing
 
 def exp_1(x, y, tqdm_pos, tqdm_lock):
     """
@@ -268,8 +268,6 @@ def exp_2(x, tqdm_pos, tqdm_lock):
         "cluster 2" : cqp.get_job_results(sims[1])
     }
 
-
-import multiprocessing
 
 if __name__ == '__main__':
 
