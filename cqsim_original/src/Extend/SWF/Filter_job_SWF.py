@@ -133,7 +133,7 @@ class Filter_job_SWF(filter_job.Filter_job):
                                 'usedAveCPU':float(usedAveCPU),\
                                 'usedMem':float(usedMem),\
                                 'reqProc':int(reqProc),\
-                                'reqTime':float(reqTime),\
+                                'reqTime':float(reqTime)*speed,\
                                 'reqMem':float(reqMem),\
                                 'status':int(status),\
                                 'userID':int(userID),\

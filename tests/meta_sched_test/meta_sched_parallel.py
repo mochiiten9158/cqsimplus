@@ -33,14 +33,16 @@ def run_experiment(x, tqdm_pos, tqdm_lock):
     Scheduling Strategy:
         Always select the cluster with the lowest turnaround.
     """
+
+    random.seed(100)
     test_data = {
         'time_elapsed' : [],
         'jobs_processed' : []
     }
 
-    tag = f'theta_1000_test'
+    tag = f'theta_100_test'
     trace_dir = '../data/InputFiles'
-    trace_file = 'theta_1000.swf'
+    trace_file = 'theta_100.swf'
     cluster1_proc = 2180
     cluster2_proc = 2180
 

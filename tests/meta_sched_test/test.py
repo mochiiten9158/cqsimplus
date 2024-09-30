@@ -1,5 +1,6 @@
 import os
 import sys
+import pandas as pd
 from contextlib import contextmanager
 import multiprocessing
 
@@ -34,6 +35,12 @@ def run_original(result_queue):
         result_queue.put(result_meta)
 
 
+def get_result_as_df(result):
+    column_names = ['id', 'proc1', 'proc2','walltime', 'run', 'wait', 'submit', 'start', 'end']
+    split_data = [[float(val) for val in line.split(';')] for line in result]
+    df = pd.DataFrame(split_data, columns=column_names)
+    return df
+
 # NOTE: Using multiprocessing so that there are no conflicting imports
 
 
@@ -51,18 +58,21 @@ p.join()
 
 
 # Print the lenghts of the results for correctness reference
-# TODO: Does not work because random tie breaks, set a seed value
-# print('Cluster 1 result len', len(result_meta['cluster 1']))
-# print('Cluster 1 Parallel result len', len(result_meta_parallel['cluster 1']))
-# print('Cluster 2 result len', len(result_meta['cluster 2']))
-# print('Cluster 2 Parallel result len', len(result_meta_parallel['cluster 2']))
+c1_result = get_result_as_df(result_meta['cluster 1'])
+c1p_result = get_result_as_df(result_meta_parallel['cluster 1'])
+c2_result = get_result_as_df(result_meta['cluster 2'])
+c2p_result = get_result_as_df(result_meta_parallel['cluster 2'])
 
-# # Lets do a correctness test
-# if not result_meta['cluster 1']== result_meta_parallel['cluster 1']:
-#     print('[TEST FAILED] cluster 1 mismatch')
+print()
+if not c1_result['id'].equals(c1p_result['id']):
+    print('[TEST FAILED] cluster 1 mismatch')
+else:
+    print('[TEST PASSED] cluster 1')
 
-# if not result_meta['cluster 2']== result_meta_parallel['cluster 2']:
-#     print('[TEST FAILED] cluster 2 mismatch')
+if not c2_result['id'].equals(c2p_result['id']):
+    print('[TEST FAILED] cluster 2 mismatch')
+else:
+    print('[TEST PASSED] cluster 2')
 
 
 # From here we have the plotting script.

@@ -275,21 +275,21 @@ if __name__ == '__main__':
 
     # Create processes
     process_1 = multiprocessing.Process(target=exp_2, args=(1.25, 1, lock,))
-    process_2 = multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 2, lock,))
-    process_3 = multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 3, lock,))
-    process_4 = multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,))
+    # process_2 = multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 2, lock,))
+    # process_3 = multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 3, lock,))
+    # process_4 = multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,))
 
     # Start  the processes
     process_1.start()
-    process_2.start()
-    process_3.start()
-    process_4.start()
+    # process_2.start()
+    # process_3.start()
+    # process_4.start()
 
     # Wait for processes to finish
     process_1.join()
-    process_2.join()
-    process_3.join()
-    process_4.join()
+    # process_2.join()
+    # process_3.join()
+    # process_4.join()
 
 
 

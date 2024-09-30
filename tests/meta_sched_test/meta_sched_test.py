@@ -1,4 +1,5 @@
 import os
+import random
 from tqdm import trange
 import time
 # import cqsim_path
@@ -17,6 +18,7 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 
+
 debug = f'../data/Debug'
 results = f'../data/Results'
 fmt = f'../data/Fmt'
@@ -27,7 +29,7 @@ for path in paths:
 
 
 trace_dir = "../data/InputFiles/"
-trace_name = 'theta_1000'
+trace_name = 'theta_100'
 clusters = [2180, 2180]
 cluster_speeds = [1, 1.25]
 
@@ -222,6 +224,7 @@ def run_simulation(
         return module_output_log.job_turnarounds, module_output_log.results
     
 def run_experiment():
+    random.seed(100)
 
     test_data = {
         'time_elapsed' : [],
@@ -274,7 +277,6 @@ def run_experiment():
         lowest_turnaround = min(cluster_latest_job_turnarounds.values())
         cluster_index_with_lowest_turnaround = [key for key, value in cluster_latest_job_turnarounds.items() if value == lowest_turnaround]
 
-        import random
         selected_cluster_i = random.choice(cluster_index_with_lowest_turnaround)
 
         # Add the job
