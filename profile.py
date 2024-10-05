@@ -37,3 +37,5 @@ if params.osImage and params.osImage != "default":
 sa_command = "/local/repository/cloudlab/setup.sh "
 
 node.addService(rspec.Execute(shell="bash", command=sa_command))
+
+pc.printRequestRSpec(request)
