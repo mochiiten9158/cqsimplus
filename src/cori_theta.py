@@ -11,6 +11,19 @@ import random
 import multiprocessing
 
 
+# Cori
+# start 1641017042
+# end 1672559856
+
+# Theta
+# start 1641021254
+# end 1672445845
+
+# start diff 4212 s 70 mins
+# end diff 114011 s 31 hrs
+
+
+
 
 def exp_theta():
     """
@@ -291,67 +304,109 @@ def exp_2(x, tqdm_pos, tqdm_lock):
     }
 
 
+def generate_theta_cori_trace(dest_dir, file_name, size):
+    from trace_utils import read_job_data_swf
+
+    # start and end range from theta trace
+    start=1641021254
+    end=1672445845
+
+    # read jobs theta
+    df_theta = read_job_data_swf('../data/InputFiles', 'theta_2022.swf')
+
+    # read jobs cori
+    df_cori = read_job_data_swf('../data/InputFiles', 'cori_2022.swf')
+
+    # cori get jobs in the range
+    df_cori = df_cori[(df_cori['submit'] >= start) & (df_cori['submit'] <= end)].reset_index()
+
+    # NOTE: Every above 23912 is a cori job id
+    df_cori['id'] = df_cori['id'] + len(df_theta)
+
+    # Merge the traces
+    df_cori_theta = pd.concat([df_cori, df_theta], ignore_index=True)
+
+    # Sort by submit times
+    df_cori_theta = df_cori_theta.sort_values('submit').reset_index()
+
+    df = df_cori_theta
+
+    # Get red of reset_index residual columns
+    df = df.drop(['index', 'level_0'], axis=1)
+
+    df = df.head(size)
+
+    df.to_csv(f'{dest_dir}/{file_name}', sep=';', index=False, header=False) 
+
+
+
+
+
 if __name__ == '__main__':
 
-    lock = multiprocessing.Manager().Lock()
-    p = []
-
-    import sys
-    selector = int(sys.argv[1])
+    generate_theta_cori_trace('../data/InputFiles', 'theta_cori_100K.csv', 100000)
 
 
-    if selector == 0:
-        # Homogeneous
-        p.append(multiprocessing.Process(target=exp_1, args=(1, 0.5, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_2, args=(1, 2, lock,)))
 
-    if selector == 1:
-        # Select random cluster
-        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.5, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.5, 2, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.5, 3, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.5, 4, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.5, 5, lock,)))
+    # lock = multiprocessing.Manager().Lock()
+    # p = []
 
-    if selector == 2:
-        # Select faster cluster 60% of time
-        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.6, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.6, 2, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.6, 3, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 4, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.6, 5, lock,)))
-
-    if selector == 3:
-        # Select faster cluster 70% of time
-        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.7, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.7, 2, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.7, 3, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 4, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.7, 5, lock,)))
-
-    if selector == 4:
-        # Select faster cluster 80% of time
-        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.8, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.8, 2, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.8, 3, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,)))
-        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.8, 5, lock,)))
-
-    if selector == 5:
-        # Select the cluster with optimal turnaround
-        p.append(multiprocessing.Process(target=exp_2, args=(1.10, 1, lock,)))
-        p.append(multiprocessing.Process(target=exp_2, args=(1.15, 2, lock,)))
-        p.append(multiprocessing.Process(target=exp_2, args=(1.20, 3, lock,)))
-        p.append(multiprocessing.Process(target=exp_2, args=(1.25, 4, lock,)))
-        p.append(multiprocessing.Process(target=exp_2, args=(1.30, 5, lock,)))
+    # import sys
+    # selector = int(sys.argv[1])
 
 
-    for proc in p:
-        proc.start()
+    # if selector == 0:
+    #     # Homogeneous
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1, 0.5, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1, 2, lock,)))
+
+    # if selector == 1:
+    #     # Select random cluster
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.5, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.5, 2, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.5, 3, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.5, 4, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.5, 5, lock,)))
+
+    # if selector == 2:
+    #     # Select faster cluster 60% of time
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.6, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.6, 2, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.6, 3, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 4, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.6, 5, lock,)))
+
+    # if selector == 3:
+    #     # Select faster cluster 70% of time
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.7, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.7, 2, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.7, 3, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 4, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.7, 5, lock,)))
+
+    # if selector == 4:
+    #     # Select faster cluster 80% of time
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.8, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.8, 2, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.8, 3, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.8, 5, lock,)))
+
+    # if selector == 5:
+    #     # Select the cluster with optimal turnaround
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1.10, 1, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1.15, 2, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1.20, 3, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1.25, 4, lock,)))
+    #     p.append(multiprocessing.Process(target=exp_2, args=(1.30, 5, lock,)))
+
+
+    # for proc in p:
+    #     proc.start()
     
 
-    for proc in p:
-        proc.join()
+    # for proc in p:
+    #     proc.join()
 
 
 

@@ -8,10 +8,20 @@ import IOModule.Debug_log as Class_Debug_log
 import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
+from CqSim.utils import swf_columns
+import pandas as pd
+import shutil
+import os
+import utils
 
-def get_job_data(self, trace_dir, trace_file):
+
+
+def read_job_data_csv(trace_dif, trace_file):
+    pass
+
+def read_job_data_swf(trace_dir, trace_file):
     """
-    Get the job data from some trace.
+    Read the job data from some trace.
 
     Parameters
     ----------
@@ -34,7 +44,7 @@ def get_job_data(self, trace_dir, trace_file):
         log_freq=1
     )
     module_debug.disable()
-    save_name_j = f'file'
+    save_name_j = f'trace.csv'
     config_name_j = f'/dev/null'
     module_filter_job = filter_job_ext.Filter_job_SWF(
         trace=f'{trace_dir}/{trace_file}', 
@@ -45,7 +55,7 @@ def get_job_data(self, trace_dir, trace_file):
     module_filter_job.feed_job_trace()
     module_filter_job.output_job_config()
 
-    job_ids = module_filter_job.job_ids
-    job_procs = module_filter_job.job_procs
-
-    return job_ids, job_procs
+    df = pd.read_csv(f'trace.csv', sep=';', header=None) 
+    utils.delete_file('trace.csv')
+    df.columns = swf_columns
+    return df

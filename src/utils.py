@@ -1,6 +1,8 @@
 import builtins
 import contextlib
 import random
+import shutil
+import os
 
 def probabilistic_true(y):
   """
@@ -66,3 +68,20 @@ def enable_print():
     yield
   finally:
     pass  # No need to do anything in the finally block
+
+def delete_file(file_path):
+  """
+  Deletes a file.
+
+  Args:
+    file_path: The path to the file to be deleted.
+  """
+  try:
+    os.remove(file_path)  # You can also use os.unlink(file_path)
+    print(f"File deleted: {file_path}")
+  except FileNotFoundError:
+    print(f"File not found: {file_path}")
+  except PermissionError:
+    print(f"Permission denied to delete {file_path}")
+  except Exception as e:
+    print(f"An error occurred: {e}")

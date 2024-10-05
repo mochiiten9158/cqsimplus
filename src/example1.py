@@ -4,27 +4,18 @@ This example shows a way to "step through" cqsim.
 
 from CqSim.Cqsim_plus import Cqsim_plus
 
-# Cori
-# start 1641017042
-# end 1672559856
-
-# Theta
-# start 1641021254
-# end 1672445845
-
-# start diff 4212 s 70 mins
-# end diff 114011 s 31 hrs
-
-
-
 # 2349370
 # trace_dir = '../data/InputFiles'
 # trace_file = 'cori_2022.swf'
 # proc = 9688
-trace_dir = '../data/Results/optimal_turnaround_1.0/Fmt/'
-trace_file = 'theta_2022_0.csv'
-proc = 4320
+# trace_dir = '../data/Results/optimal_turnaround_1.0/Fmt/'
+# trace_file = 'theta_2022_0.csv'
+# proc = 4320
 
+
+trace_dir = '../data/InputFiles'
+trace_file = 'theta_cori_100K.csv'
+proc = 14008
 
 # Create Cqsim plus instance.
 cqp = Cqsim_plus(tag = 'test_theta')
