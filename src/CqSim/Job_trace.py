@@ -53,11 +53,11 @@ class Job_trace:
             job_submit_list: ???
             job_wait_list: ???
             job_run_list: ???
-            temp_Start: ???
             line_number: The line number in the job file.
-            j: ???
-            end_read: If set, dynamic_read_job_file will assume reading is over and will return -1.
-
+            job_counter: Counter for the jobs read.
+            num_delete_jobs: ???
+            job_skips: Counter for the number of jobs skipped (likely because mask was set to 0)
+            job_file_offset: offset in number of bytes in the job file for the next job.
         """
 
         self.myInfo = "Job Trace"
@@ -79,8 +79,8 @@ class Job_trace:
         self.line_number = 0
         self.job_counter = 0
         self.num_delete_jobs = 0
-        self.context = None
         self.job_skips = 0
+        self.job_file_offest = 0
 
 
         # If the mask is not defnied, initialze the mask to read all jobs.
@@ -112,25 +112,20 @@ class Job_trace:
         if self.line_number < len(self.mask):
             self.mask[line_counter] = 1 
 
-    def read_line_at_line_offset(self, file_path, line_offset):
+    def read_next_job(self,):
         """
-        Reads the line in a text file at a specified line offset (0-indexed).
+        Reads the next job in the job file, at the offset kept by the class.
 
         Args:
-            file_path (str): The path to the text file.
-            line_offset (int): The 0-indexed line offset to read (0 for the first line, 1 for the second, etc.).
-
         Returns:
-            str: The line found at the specified line offset, or None if the offset is beyond the number of lines in the file.
+            str: String of job data
         """
-        line = "dfsds"
-        with open(file_path, 'r') as f:
-            for _ in range(line_offset):
-                line = f.readline()
-                if not line:  # Reached end of file before desired offset
-                    return None
-
-            return line
+        line = ""
+        with open(self.job_file_path, 'r') as f:
+            f.seek(self.job_file_offest)
+            line = f.readline()
+            self.job_file_offest = f.tell()
+        return line
 
 
 
@@ -139,18 +134,7 @@ class Job_trace:
         Reads the next line from the job file, skips lines accroding to the mask.
         The line is parsed for job data and added to the job trace.
         """
-        if self.line_number == 0:
-            self.job_fd =  open(self.job_file_path,'r')
-
-
-        # Read the next job line.
-        # TODO: Debug why this read incomplete lines in child processes?
-        # Problem with file descriptors?
-        job_line = self.job_fd.readline()
-
-
-        job_line2 = self.read_line_at_line_offset(self.job_file_path, self.line_number + 1)
-        job_line = job_line2
+        job_line = self.read_next_job()
 
         # Check for end of file.
         if not job_line:
@@ -164,6 +148,7 @@ class Job_trace:
         # Skip the line if the mask is 0, yield again in parent on -2
         if self.mask[self.line_number] == 0:
             self.line_number += 1
+            self.job_skips += 1
             return -2
             
 

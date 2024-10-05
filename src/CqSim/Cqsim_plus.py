@@ -26,6 +26,8 @@ import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
 __metaclass__ = type
+import pandas as pd
+from CqSim.utils import swf_columns
 
 class Cqsim_plus:
     """
@@ -60,6 +62,7 @@ class Cqsim_plus:
         self.sim_names = []
         self.sim_modules = []
         self.sim_procs = []
+        self.sim_uses_parsed_trace = []
         # TODO: For now, each cqsim instance's IO folder is given a random name
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
@@ -93,7 +96,7 @@ class Cqsim_plus:
         return result
 
 
-    def get_job_data(self, trace_dir, trace_file):
+    def get_job_data(self, trace_dir, trace_file, parsed_trace = False):
         """
         Get the job data from some trace.
 
@@ -111,6 +114,13 @@ class Cqsim_plus:
         job_procs : list[int]
             List of processes requested for each job.
         """
+        if parsed_trace:
+            df = pd.read_csv(f'{trace_dir}/{trace_file}', sep=';', header=None) 
+            df.columns = swf_columns
+            return df['id'].to_list(), df['req_proc'].to_list(), df['submit'].to_list()
+
+
+
         module_debug = Class_Debug_log.Debug_log(
             lvl=0,
             show=0,
@@ -131,11 +141,12 @@ class Cqsim_plus:
 
         job_ids = module_filter_job.job_ids
         job_procs = module_filter_job.job_procs
+        job_submits = module_filter_job.job_submits
 
-        return job_ids, job_procs
+        return job_ids, job_procs, job_submits
 
 
-    def single_cqsim(self, trace_dir, trace_file, proc_count):
+    def single_cqsim(self, trace_dir, trace_file, proc_count, parsed_trace = False):
         """
         Sets up a single cqsim instance.
 
@@ -193,6 +204,29 @@ class Cqsim_plus:
             fmt_job_config_file = f'{trace_name}_{temp_sim_id}.con'
             fmt_node_file = f'{trace_name}_{temp_sim_id}_node.csv'
             fmt_node_config_file = f'{trace_name}_{temp_sim_id}_node.con'
+
+        # If the trace parsed is already in in .csv
+        elif parsed_trace:
+
+            destination = f'{fmt_dir}/{fmt_job_file}'
+            source = f'{trace_dir}/{trace_file}'
+
+            from CqSim.utils import copy_file
+            copy_file(source, destination)
+            
+
+            # Generate Node realted format files
+            module_filter_node = filter_node_ext.Filter_node_SWF(
+                struc=None,
+                save=f'{fmt_dir}/{fmt_node_file}', 
+                config=f'{fmt_dir}/{fmt_node_config_file}', 
+                debug=module_debug
+            )
+            module_filter_node.static_node_struc(proc_count)
+            module_filter_node.output_node_data()
+            module_filter_node.output_node_config()
+            pass
+
         # Parse SWF file
         else:
             module_filter_job = filter_job_ext.Filter_job_SWF(
@@ -214,6 +248,9 @@ class Cqsim_plus:
             module_filter_node.output_node_data()
             module_filter_node.output_node_config()
 
+
+
+
         # Job trace module
         module_job_trace = Class_Job_trace.Job_trace(
             job_file_path=f'{fmt_dir}/{fmt_job_file}',
@@ -222,7 +259,7 @@ class Cqsim_plus:
             virtual_start_time=0,
             max_lines=1000
         )
-        module_job_trace.import_job_config(f'{fmt_dir}/{fmt_job_config_file}')
+        # module_job_trace.import_job_config(f'{fmt_dir}/{fmt_job_config_file}')
 
         # Node structure module
         module_node_struc = node_struc_ext.Node_struc_SWF(debug=module_debug)
@@ -295,6 +332,7 @@ class Cqsim_plus:
         self.sim_modules.append(module_sim)
         self.traces[f'{trace_dir}/{trace_file}'] = sim_id
         self.sim_procs.append(proc_count)
+        self.sim_uses_parsed_trace.append(parsed_trace)
 
         return sim_id
 

@@ -1,12 +1,45 @@
 from datetime import datetime
 import time
 import re
+import pandas as pd
 
 import Filter.Filter_job as filter_job
 
 __metaclass__ = type
 
 class Filter_job_SWF(filter_job.Filter_job):
+
+    def __init__(self, trace, save=None, config=None, sdate=None, start=-1, density=1, anchor=0, rnum=0, debug=None):
+        super().__init__(trace, save, config, sdate, start, density, anchor, rnum, debug)
+        self.job_ids = []
+        self.job_procs = []
+        self.job_data = []
+        self.job_submits = []
+        self.swf_columns = [
+            'id',           #1 
+            'submit',       #2
+            'wait',         #3
+            'run',          #4
+            'used_proc',    #5
+            'used_ave_cpu', #6
+            'used_mem',     #7
+            'req_proc',     #8
+            'req_time',     #9
+            'req_mem',      #10
+            'status',       #11
+            'user_id',      #12
+            'group_id',     #13
+            'num_exe',      #14
+            'num_queue',    #15
+            'num_part',     #16
+            'num_pre',      #17
+            'think_time',   #18
+            ]
+        self.data_frame = pd.DataFrame()
+
+
+
+
     def reset_config_data(self):
         self.config_start=';'
         self.config_sep='\\n'
@@ -14,10 +47,6 @@ class Filter_job_SWF(filter_job.Filter_job):
         self.config_data=[]
         self.config_data.append({'name_config':'date','name':'StartTime','value':''})
         self.config_data.append({'name_config':'start_offset','name':None,'value':''})
-        self.job_ids = []
-        self.job_procs = []
-        self.job_data = []
-        self.job_submits = []
 
     def feed_job_trace_with_mask_speed(self, mask, mask_max_i,speed):
         if not self.save:

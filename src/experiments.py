@@ -1,14 +1,6 @@
 """
-Runner for Case study 2
-
-Simulate 2 clusters using CQSim+.
-    - Cluster 1 uses original runtime.
-    - Cluster 2 runs by a factor of x.
-
-Two cases:
-    - The user selects the faster cluster with y% probability
-    - Dynamically allocate based on shortest wait time
-
+Functions for experiments.
+Import these functions to run various experiments.
 
 """
 from CqSim.Cqsim_plus import Cqsim_plus
@@ -41,7 +33,7 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
     results: dict
         result of the experiment
     """
-    tag = f'probable_user_{int(x*100)}_{int(y*100)}'
+    tag = f'probable_user_{x}_{y}'
     cqp = Cqsim_plus(tag = tag)
     cqp.disable_child_stdout = True
 
@@ -158,7 +150,7 @@ def exp_2(x, tqdm_pos, tqdm_lock):
     Scheduling Strategy:
         Always select the cluster with the lowest turnaround.
     """
-    tag = f'optimal_turnaround_{int(x*100)}'
+    tag = f'optimal_turnaround_{x}'
     trace_dir = '../data/InputFiles'
     trace_file = 'theta_2022.swf'
     cluster1_proc = 2180
@@ -272,24 +264,65 @@ def exp_2(x, tqdm_pos, tqdm_lock):
 if __name__ == '__main__':
 
     lock = multiprocessing.Manager().Lock()
+    p = []
 
-    # Create processes
-    process_1 = multiprocessing.Process(target=exp_2, args=(1.25, 1, lock,))
-    # process_2 = multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 2, lock,))
-    # process_3 = multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 3, lock,))
-    # process_4 = multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,))
+    import sys
+    selector = int(sys.argv[1])
 
-    # Start  the processes
-    process_1.start()
-    # process_2.start()
-    # process_3.start()
-    # process_4.start()
 
-    # Wait for processes to finish
-    process_1.join()
-    # process_2.join()
-    # process_3.join()
-    # process_4.join()
+    if selector == 0:
+        # Homogeneous
+        p.append(multiprocessing.Process(target=exp_1, args=(1, 0.5, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_2, args=(1, 2, lock,)))
+
+    if selector == 1:
+        # Select random cluster
+        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.5, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.5, 2, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.5, 3, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.5, 4, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.5, 5, lock,)))
+
+    if selector == 2:
+        # Select faster cluster 60% of time
+        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.6, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.6, 2, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.6, 3, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.6, 4, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.6, 5, lock,)))
+
+    if selector == 3:
+        # Select faster cluster 70% of time
+        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.7, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.7, 2, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.7, 3, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.7, 4, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.7, 5, lock,)))
+
+    if selector == 4:
+        # Select faster cluster 80% of time
+        p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.8, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.8, 2, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.8, 3, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.8, 4, lock,)))
+        p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.8, 5, lock,)))
+
+    if selector == 5:
+        # Select the cluster with optimal turnaround
+        p.append(multiprocessing.Process(target=exp_2, args=(1.10, 1, lock,)))
+        p.append(multiprocessing.Process(target=exp_2, args=(1.15, 2, lock,)))
+        p.append(multiprocessing.Process(target=exp_2, args=(1.20, 3, lock,)))
+        p.append(multiprocessing.Process(target=exp_2, args=(1.25, 4, lock,)))
+        p.append(multiprocessing.Process(target=exp_2, args=(1.30, 5, lock,)))
+
+
+    for proc in p:
+        proc.start()
+    
+
+    for proc in p:
+        proc.join()
+
 
 
 
