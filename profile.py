@@ -34,10 +34,6 @@ if params.osImage and params.osImage != "default":
     node.disk_image = params.osImage
 
 
-sa_command = "/local/repository/cloudlab/setup.sh "\
-    + str(loginNodeCount)\
-    + " "\
-    + str(workerNodeCount)\
-    + " /local/cluster_inventory.yml"
+sa_command = "/local/repository/cloudlab/setup.sh "
 
 node.addService(rspec.Execute(shell="bash", command=sa_command))
