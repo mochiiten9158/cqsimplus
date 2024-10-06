@@ -31,7 +31,6 @@ def copy_file(source, destination):
   """
   try:
     shutil.copy2(source, destination)
-    print(f"File copied from {source} to {destination}")
   except FileNotFoundError:
     print(f"Source file not found: {source}")
   except PermissionError:

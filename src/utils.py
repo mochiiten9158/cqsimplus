@@ -78,7 +78,6 @@ def delete_file(file_path):
   """
   try:
     os.remove(file_path)  # You can also use os.unlink(file_path)
-    print(f"File deleted: {file_path}")
   except FileNotFoundError:
     print(f"File not found: {file_path}")
   except PermissionError:

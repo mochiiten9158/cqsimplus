@@ -24,92 +24,31 @@ import multiprocessing
 
 
 
-
-def exp_theta():
+def exp_theta(tqdm_pos, tqdm_lock):
     """
     Experiment Theta
 
     Simulates Theta 2022 jobs on Theta
 
     """
-    pass
-
-def exp_cori():
-    """
-    Experiment Cori
-
-    Simulates Cori 2022 jobs on Cori
-    """
-    pass
-
-def exp_cori_theta():
-    """
-    Experiment Cori Theta
-
-    Simulates Cori + Theta jobs on Cori and Theta using optimal turnaround scheduling.
-    """
-    pass
-
-
-
-
-def exp_1(x, y, tqdm_pos, tqdm_lock):
-    """
-    Experiment 1
-
-    Cluster setup:
-        Cluster 1 uses original runtime
-        Cluster 2 runs at a factor of x
-
-    Scheduling Strategy:
-        The user selects the faster cluster with y% probability.
-
-    Parameters
-    ----------
-    x : float
-        cluster 2 speed factor
-    y : float
-        proability with which user selects cluster 1
-
-    Returns
-    -------
-    results: dict
-        result of the experiment
-    """
-    tag = f'probable_user_{x}_{y}'
-    cqp = Cqsim_plus(tag = tag)
-    cqp.disable_child_stdout = True
-
+    tag = f'exp_only_theta'
     trace_dir = '../data/InputFiles'
-    trace_file = 'theta_2022.swf'
-    cluster1_proc = 2180
-    cluster2_proc = 2180
+    trace_file = 'exp_only_theta.csv'
+    cluster_proc = 4360
 
-    # Cluster 1 original runtime.
-    id1 = cqp.single_cqsim(
-        trace_dir, 
-        trace_file, 
-        proc_count=cluster1_proc)
+
+    cqp = Cqsim_plus(tag = tag)
     
 
-    # Cluster 2 runs at a factor of x.
-    id2 = cqp.single_cqsim(
-        trace_dir, 
-        trace_file, 
-        proc_count=cluster2_proc)
-    cqp.set_job_run_scale_factor(id2, x)
-    cqp.set_job_walltime_scale_factor(id2, x)
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
 
-    sims = [id1, id2]
 
-    # Get job stats
-    job_ids, job_procs = cqp.get_job_data(trace_dir, trace_file)
-    job_submits = cqp.get_job_submits(trace_dir, trace_file)
+    sim = cqp.single_cqsim(trace_dir = trace_dir, trace_file = trace_file, proc_count= cluster_proc, parsed_trace=True)
 
     # Configure sims to read all jobs
-    for sim in sims:
-        cqp.set_max_lines(sim, len(job_ids))
-        cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+    cqp.set_max_lines(sim, len(job_ids))
+    cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+
 
     tqdm_text = tag
     with tqdm_lock:
@@ -118,112 +57,163 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
             total=len(job_ids),
             position=tqdm_pos,
             leave=False)
-    
-    for i in range(len(job_ids)):
 
-        valid_sims = []
-        for sim in sims:
-            
+    for _ in job_ids:
+        with disable_print():
+            cqp.line_step(sim)
 
-            # Check if the job can be run
-            if job_procs[i] > cqp.sim_procs[sim]:
-                continue
-            valid_sims.append(sim)    
-        
-        # If none of the clusters could run, skip the job
-        if len(valid_sims) == 0:
-            for sim in sims:
-                cqp.disable_next_job(sim)
-                with disable_print():
-                    cqp.line_step(sim)
-            continue
-
-        elif len(valid_sims) == 1:
-            selected_sim = valid_sims[0]
-
-        elif len(valid_sims) == 2:
-            if probabilistic_true(y):
-                # Choose cluster 1.
-                selected_sim = sims[0]
-
-            else:
-                # Chose cluster 2.
-                selected_sim = sims[1]
-
-
-        # selected_sim = random.choice(valid_sims)
-
-        for sim in sims:
-            
-            if sim == selected_sim:
-                cqp.enable_next_job(sim)            
-            else:
-                cqp.disable_next_job(sim)
-            
-            with disable_print():
-                cqp.line_step(sim)
-        
         with tqdm_lock:
             bar.update(1)
+
+    while not cqp.check_sim_ended(sim):
+        with disable_print():
+            cqp.line_step(sim)
 
     with tqdm_lock:
         bar.close()
 
-
-    
-    # Run all the simulations until complete.
-    while not cqp.check_all_sim_ended(sims):
-        for sim_id in sims:
-            with disable_print():
-                cqp.line_step(sim_id)
-
     return {
-        "cluster 1" : cqp.get_job_results(sims[0]),
-        "cluster 2" : cqp.get_job_results(sims[1])
+        "theta" : cqp.get_job_results(sim)
     }
 
-def exp_2(x, tqdm_pos, tqdm_lock):
+def exp_cori(tqdm_pos, tqdm_lock):
     """
-    Experiment 2
+    Experiment Cori
 
-    Cluster setup:
-        Cluster 1 uses original runtime
-        Cluster 2 runs at a factor of x
-
-    Scheduling Strategy:
-        Always select the cluster with the lowest turnaround.
+    Simulates Cori 2022 jobs on Cori
     """
-    tag = f'optimal_turnaround_{x}'
+    tag = f'exp_only_cori'
     trace_dir = '../data/InputFiles'
-    trace_file = 'theta_2022.swf'
-    cluster1_proc = 2180
-    cluster2_proc = 2180
+    trace_file = 'exp_only_cori.csv'
+    cluster_proc = 9688
+
+
+    cqp = Cqsim_plus(tag = tag)
+    
+
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
+
+
+    sim = cqp.single_cqsim(trace_dir = trace_dir, trace_file = trace_file, proc_count= cluster_proc, parsed_trace=True)
+
+    # Configure sims to read all jobs
+    cqp.set_max_lines(sim, len(job_ids))
+    cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+
+
+    tqdm_text = tag
+    with tqdm_lock:
+        bar = tqdm.tqdm(
+            desc=tqdm_text,
+            total=len(job_ids),
+            position=tqdm_pos,
+            leave=False)
+
+    for _ in job_ids:
+        with disable_print():
+            cqp.line_step(sim)
+
+        with tqdm_lock:
+            bar.update(1)
+
+    while not cqp.check_sim_ended(sim):
+        with disable_print():
+            cqp.line_step(sim)
+
+    with tqdm_lock:
+        bar.close()
+
+    return {
+        "cori" : cqp.get_job_results(sim)
+    }
+
+def exp_theta_cori_merged(tqdm_pos, tqdm_lock):
+    """
+    Experiment Cori Theta Merged
+
+    Simulates Cori + Theta jobs on Cori and Theta merged system.
+    """
+    tag = f'exp_theta_cori_merged'
+    trace_dir = '../data/InputFiles'
+    trace_file = 'exp_theta_cori.csv'
+    cluster_proc = 14008
+
+
+    cqp = Cqsim_plus(tag = tag)
+    
+
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
+
+
+    sim = cqp.single_cqsim(trace_dir = trace_dir, trace_file = trace_file, proc_count= cluster_proc, parsed_trace=True)
+
+    # Configure sims to read all jobs
+    cqp.set_max_lines(sim, len(job_ids))
+    cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+
+
+    tqdm_text = tag
+    with tqdm_lock:
+        bar = tqdm.tqdm(
+            desc=tqdm_text,
+            total=len(job_ids),
+            position=tqdm_pos,
+            leave=False)
+
+    for _ in job_ids:
+
+        with disable_print():
+            cqp.line_step(sim)
+
+        with tqdm_lock:
+            bar.update(1)
+
+    while not cqp.check_sim_ended(sim):
+        with disable_print():
+            cqp.line_step(sim)
+
+    with tqdm_lock:
+        bar.close()
+
+    return {
+        "theta_cori_merged" : cqp.get_job_results(sim)
+    }
+
+
+def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
+    """
+    Theta and Cori Metascheduled using OPT turnaround
+    """
+    tag = f'theta_cori_opt_turn'
+    trace_dir = '../data/InputFiles'
+    trace_file = 'exp_theta_cori.csv'
+    cluster1_proc = 4360
+    cluster2_proc = 9688
 
 
     cqp = Cqsim_plus(tag = tag)
     cqp.disable_child_stdout = True
 
-    # Cluster 1 original runtime.
+    # Cluster 1 is Theta
     id1 = cqp.single_cqsim(
         trace_dir, 
         trace_file, 
-        proc_count=cluster1_proc)
+        proc_count=cluster1_proc,
+        parsed_trace=True)
     
 
-    # Cluster 2 runs at a factor of x.
+    # Cluster 2 is Cori
     id2 = cqp.single_cqsim(
         trace_dir, 
         trace_file, 
-        proc_count=cluster2_proc)
-    cqp.set_job_run_scale_factor(id2, x)
-    cqp.set_job_walltime_scale_factor(id2, x)
+        proc_count=cluster2_proc,
+        parsed_trace=True)
 
     sims = [id1, id2]
 
 
     # Get job stats
-    job_ids, job_procs = cqp.get_job_data(trace_dir, trace_file)
-    job_submits = cqp.get_job_submits(trace_dir, trace_file)
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
 
     # Configure sims to read all jobs
     for sim in sims:
@@ -299,13 +289,17 @@ def exp_2(x, tqdm_pos, tqdm_lock):
                 cqp.line_step(sim_id)
 
     return {
-        "cluster 1" : cqp.get_job_results(sims[0]),
-        "cluster 2" : cqp.get_job_results(sims[1])
+        "theta" : cqp.get_job_results(sims[0]),
+        "cori" : cqp.get_job_results(sims[1])
     }
 
 
-def generate_theta_cori_trace(dest_dir, file_name, size):
+def create_theta_cori_traces(dest_dir, size = -1):
     from trace_utils import read_job_data_swf
+
+    file_name_merged = f'exp_theta_cori.csv'
+    file_name_theta = f'exp_only_theta.csv'
+    file_name_cori = f'exp_only_cori.csv'
 
     # start and end range from theta trace
     start=1641021254
@@ -334,9 +328,19 @@ def generate_theta_cori_trace(dest_dir, file_name, size):
     # Get red of reset_index residual columns
     df = df.drop(['index', 'level_0'], axis=1)
 
-    df = df.head(size)
+    if not size == -1:
+        df = df.head(size)
 
-    df.to_csv(f'{dest_dir}/{file_name}', sep=';', index=False, header=False) 
+    df.to_csv(f'{dest_dir}/{file_name_merged}', sep=';', index=False, header=False)
+
+    df_cori = df[df['id'] > 23911].reset_index()
+    df_cori = df_cori.drop(['index'], axis=1)
+    df_cori.to_csv(f'{dest_dir}/{file_name_cori}', sep=';', index=False, header=False)
+
+    df_theta = df[df['id'] <= 23911].reset_index()
+    df_theta = df_theta.drop(['index'], axis=1)
+    df_theta.to_csv(f'{dest_dir}/{file_name_theta}', sep=';', index=False, header=False)
+
 
 
 
@@ -344,12 +348,21 @@ def generate_theta_cori_trace(dest_dir, file_name, size):
 
 if __name__ == '__main__':
 
-    generate_theta_cori_trace('../data/InputFiles', 'theta_cori_100K.csv', 100000)
+    create_theta_cori_traces('../data/InputFiles')
 
+    lock = multiprocessing.Manager().Lock()
+    p = []
 
+    p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
+    p.append(multiprocessing.Process(target=exp_cori, args=(2, lock,)))
+    p.append(multiprocessing.Process(target=exp_theta_cori_merged, args=(3, lock,)))
+    p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
 
-    # lock = multiprocessing.Manager().Lock()
-    # p = []
+    for proc in p:
+        proc.start()
+    
+    for proc in p:
+        proc.join()
 
     # import sys
     # selector = int(sys.argv[1])
@@ -362,11 +375,11 @@ if __name__ == '__main__':
 
     # if selector == 1:
     #     # Select random cluster
-    #     p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.5, 1, lock,)))
-    #     p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.5, 2, lock,)))
-    #     p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.5, 3, lock,)))
-    #     p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.5, 4, lock,)))
-    #     p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.5, 5, lock,)))
+        # p.append(multiprocessing.Process(target=exp_1, args=(1.10, 0.5, 1, lock,)))
+        # p.append(multiprocessing.Process(target=exp_1, args=(1.15, 0.5, 2, lock,)))
+        # p.append(multiprocessing.Process(target=exp_1, args=(1.20, 0.5, 3, lock,)))
+        # p.append(multiprocessing.Process(target=exp_1, args=(1.25, 0.5, 4, lock,)))
+        # p.append(multiprocessing.Process(target=exp_1, args=(1.30, 0.5, 5, lock,)))
 
     # if selector == 2:
     #     # Select faster cluster 60% of time

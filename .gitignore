@@ -8,3 +8,9 @@ data/InputFiles/interpid2009.swf
 data/InputFiles/cori_2022.swf
 data/InputFiles/theta_2022.swf
 cqsim_original/data/InputFiles/*
+data/InputFiles/exp_only_cori.csv
+data/InputFiles/exp_only_theta.csv
+data/InputFiles/exp_theta_cori.csv
+data/InputFiles/only_cori.csv
+data/InputFiles/only_theta.csv
+data/InputFiles/theta_cori_100000.csv
