@@ -17,8 +17,6 @@ sudo apt install python3.12 -y
 sudo apt install python3.12-venv -y
 
 # Create a virtual environment
-(
-    cd /local/repository
-    python3.12 -m venv .venv
-)
+cd /local/repository && python3.12 -m venv .venv
+
 
