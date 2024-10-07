@@ -1,10 +1,14 @@
 """
-Functions for experiments.
-Import these functions to run various experiments.
+Cori and Theta experiments
 
+Analysis of:
+- how many cori jobs went to theta? (meta case)
+- how many theta jobs when to cori? (meta case)
+- what is the wait time for the cori jobs on only cori, merged and meta case
+- what is the wait time for the theta jobs on only theta, merged and meta case
 """
 from CqSim.Cqsim_plus import Cqsim_plus
-import tqdm
+from tqdm.auto import tqdm
 from utils import probabilistic_true, disable_print
 import pandas as pd
 import random
@@ -53,7 +57,7 @@ def exp_theta(tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
@@ -104,7 +108,7 @@ def exp_cori(tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
@@ -156,7 +160,7 @@ def exp_theta_cori_merged(tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
@@ -225,7 +229,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
