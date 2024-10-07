@@ -249,8 +249,9 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
             presults = [result.split(';') for result in results]
             df = pd.DataFrame(presults, columns = ['id', 'reqProc', 'reqProc2', 'walltime', 'run', 'wait', 'submit', 'start', 'end']) 
             df = df.astype(float)
-            index_of_max_value = df['submit'].idxmax()
-            last_job_results = df.loc[index_of_max_value]
+    
+            # Get the results for the job we just simulated
+            last_job_results = df.loc[df['id'] == job_ids[i]]
 
             # Get the turnaround of the latest job.
             last_job_turnaround = last_job_results['end'] - last_job_results['submit']
