@@ -359,7 +359,7 @@ if __name__ == '__main__':
     p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
     p.append(multiprocessing.Process(target=exp_cori, args=(2, lock,)))
     p.append(multiprocessing.Process(target=exp_theta_cori_merged, args=(3, lock,)))
-    # p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
+    p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
 
     for proc in p:
         proc.start()
