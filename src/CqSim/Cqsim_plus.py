@@ -63,13 +63,15 @@ class Cqsim_plus:
         self.sim_modules = []
         self.sim_procs = []
         self.sim_uses_parsed_trace = []
+        self.sim_tags = []
         # TODO: For now, each cqsim instance's IO folder is given a random name
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
         self.traces = {}
-        self.disable_child_stdout = False
+        self.disable_child_stdout = True
         self.tag = tag
         if self.tag != None:
             self.exp_directory = f'../data/Results/{self.tag}'
+
 
     def set_sim_times(self, id, real_start_time, virtual_start_time):
         job_module = self.sim_modules[id].module['job']
@@ -146,7 +148,7 @@ class Cqsim_plus:
         return job_ids, job_procs, job_submits
 
 
-    def single_cqsim(self, trace_dir, trace_file, proc_count, parsed_trace = False):
+    def single_cqsim(self, trace_dir, trace_file, proc_count, parsed_trace = False, sim_tag = 'sim'):
         """
         Sets up a single cqsim instance.
 
@@ -170,8 +172,9 @@ class Cqsim_plus:
         output_dir = f'{self.exp_directory}/Results'
         debug_dir = f'{self.exp_directory}/Debug'
         fmt_dir = f'{self.exp_directory}/Fmt'
+        plus_dir = f'{self.exp_directory}/plus'
 
-        for dir in [output_dir, debug_dir, fmt_dir]:
+        for dir in [output_dir, debug_dir, fmt_dir, plus_dir]:
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
@@ -333,11 +336,22 @@ class Cqsim_plus:
         self.traces[f'{trace_dir}/{trace_file}'] = sim_id
         self.sim_procs.append(proc_count)
         self.sim_uses_parsed_trace.append(parsed_trace)
-
+        if sim_tag == 'sim':
+            self.sim_tags.append(str(sim_id))
+        else:
+            self.sim_tags.append(sim_tag)
         return sim_id
 
 
-    def line_step(self, id) -> None:
+    def rst_to_df(self, results):
+        presults = [result.split(';') for result in results]
+        df = pd.DataFrame(presults, columns = ['id', 'reqProc', 'reqProc2', 'walltime', 'run', 'wait', 'submit', 'start', 'end']) 
+        df = df.astype(float)
+        sorted_df = df.sort_values('submit')
+        return sorted_df
+
+
+    def line_step(self, id, write_results = False) -> None:
         """
         Advances a certain simulator with given id by one line in the job file.
 
@@ -345,6 +359,8 @@ class Cqsim_plus:
         ----------
         id : int
             id of a cqsim instance stored in self.sims
+        write_results : Boolean
+            write the results
 
         Returns
         -------
@@ -353,6 +369,15 @@ class Cqsim_plus:
         try:
             next(self.sims[id])
             self.line_counters[id] += 1
+
+            if write_results:
+                results = self.run_on(id)
+                dest_dir = f'{self.exp_directory}/plus/sim_{self.sim_tags[id]}'
+                if not os.path.exists(dest_dir):
+                    os.makedirs(dest_dir)
+                df = self.rst_to_df(results)
+                df.to_csv(f'{dest_dir}/result.csv', index=False)
+                
         except StopIteration:
             self.end_flags[id] = True
 
@@ -724,3 +749,19 @@ class Cqsim_plus:
     def print_results(self, id):
         output_module = self.sim_modules[id].module['output']
         output_module.print_saved_results()
+
+    def disable_debug_module(self, id):
+        """
+        Disable the printing from the debug module.
+        
+        Parameters
+        ----------
+        id : int
+            id of a cqsim instance stored in self.sims.
+
+        Returns
+        -------
+        None
+        """
+        debug_module = self.sim_modules[id].module['debug']
+        debug_module.disable()

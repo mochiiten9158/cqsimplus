@@ -48,6 +48,7 @@ def exp_theta(tqdm_pos, tqdm_lock):
     # Configure sims to read all jobs
     cqp.set_max_lines(sim, len(job_ids))
     cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+    cqp.disable_debug_module(sim)
 
 
     tqdm_text = tag
@@ -60,14 +61,14 @@ def exp_theta(tqdm_pos, tqdm_lock):
 
     for _ in job_ids:
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
         with tqdm_lock:
             bar.update(1)
 
     while not cqp.check_sim_ended(sim):
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
     with tqdm_lock:
         bar.close()
@@ -111,14 +112,14 @@ def exp_cori(tqdm_pos, tqdm_lock):
 
     for _ in job_ids:
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
         with tqdm_lock:
             bar.update(1)
 
     while not cqp.check_sim_ended(sim):
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
     with tqdm_lock:
         bar.close()
@@ -150,6 +151,7 @@ def exp_theta_cori_merged(tqdm_pos, tqdm_lock):
     # Configure sims to read all jobs
     cqp.set_max_lines(sim, len(job_ids))
     cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+    cqp.disable_debug_module(sim)
 
 
     tqdm_text = tag
@@ -163,14 +165,14 @@ def exp_theta_cori_merged(tqdm_pos, tqdm_lock):
     for _ in job_ids:
 
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
         with tqdm_lock:
             bar.update(1)
 
     while not cqp.check_sim_ended(sim):
         with disable_print():
-            cqp.line_step(sim)
+            cqp.line_step(sim, write_results=True)
 
     with tqdm_lock:
         bar.close()
@@ -219,6 +221,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
     for sim in sims:
         cqp.set_max_lines(sim, len(job_ids))
         cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+        cqp.disable_debug_module(sim)
 
     tqdm_text = tag
     with tqdm_lock:
@@ -246,7 +249,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
             presults = [result.split(';') for result in results]
             df = pd.DataFrame(presults, columns = ['id', 'reqProc', 'reqProc2', 'walltime', 'run', 'wait', 'submit', 'start', 'end']) 
             df = df.astype(float)
-            index_of_max_value = df['id'].idxmax()
+            index_of_max_value = df['submit'].idxmax()
             last_job_results = df.loc[index_of_max_value]
 
             # Get the turnaround of the latest job.
@@ -258,7 +261,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
             for sim in sims:
                 cqp.disable_next_job(sim)
                 with disable_print():
-                    cqp.line_step(sim)
+                    cqp.line_step(sim, write_results=True)
             continue
         
 
@@ -274,7 +277,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
             else:
                 cqp.disable_next_job(sim)
             with disable_print():
-                cqp.line_step(sim)
+                cqp.line_step(sim, write_results=True)
         
         with tqdm_lock:
             bar.update(1)
@@ -286,7 +289,7 @@ def exp_theta_cori_opt_turn(tqdm_pos, tqdm_lock):
     while not cqp.check_all_sim_ended(sims):
         for sim_id in sims:
             with disable_print():
-                cqp.line_step(sim_id)
+                cqp.line_step(sim_id, write_results=True)
 
     return {
         "theta" : cqp.get_job_results(sims[0]),
@@ -348,7 +351,7 @@ def create_theta_cori_traces(dest_dir, size = -1):
 
 if __name__ == '__main__':
 
-    create_theta_cori_traces('../data/InputFiles')
+    create_theta_cori_traces('../data/InputFiles', )
 
     lock = multiprocessing.Manager().Lock()
     p = []
@@ -356,7 +359,7 @@ if __name__ == '__main__':
     p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
     p.append(multiprocessing.Process(target=exp_cori, args=(2, lock,)))
     p.append(multiprocessing.Process(target=exp_theta_cori_merged, args=(3, lock,)))
-    p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
+    # p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
 
     for proc in p:
         proc.start()
