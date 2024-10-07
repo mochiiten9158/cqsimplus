@@ -59,3 +59,4 @@ def read_job_data_swf(trace_dir, trace_file):
     utils.delete_file('trace.csv')
     df.columns = swf_columns
     return df
+    

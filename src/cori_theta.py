@@ -315,15 +315,23 @@ def create_theta_cori_traces(dest_dir, size = -1):
 
     # read jobs theta
     df_theta = read_job_data_swf('../data/InputFiles', 'theta_2022.swf')
+    # Store the original ids of theta
+    df_theta['cluster_id'] = 0
+    df_theta['cluster_job_id'] = df_theta['id']
 
     # read jobs cori
     df_cori = read_job_data_swf('../data/InputFiles', 'cori_2022.swf')
 
+    # print(df_cori)
+    # Store the original ids of cori
+    df_cori['cluster_id'] = 1
+    df_cori['cluster_job_id'] = df_cori['id']
+
+
     # cori get jobs in the range
     df_cori = df_cori[(df_cori['submit'] >= start) & (df_cori['submit'] <= end)].reset_index()
 
-    # NOTE: Every above 23912 is a cori job id
-    df_cori['id'] = df_cori['id'] + len(df_theta)
+    # print(df_cori)
 
     # Merge the traces
     df_cori_theta = pd.concat([df_cori, df_theta], ignore_index=True)
@@ -336,20 +344,30 @@ def create_theta_cori_traces(dest_dir, size = -1):
     # Get red of reset_index residual columns
     df = df.drop(['index', 'level_0'], axis=1)
 
+    # Set fresh ids
+    df.loc[:, 'id'] = range(1, len(df) + 1)
+
     if not size == -1:
         df = df.head(size)
 
+    # Cori + Theta
     df.to_csv(f'{dest_dir}/{file_name_merged}', sep=';', index=False, header=False)
 
-    df_cori = df[df['id'] > 23911].reset_index()
-    df_cori = df_cori.drop(['index'], axis=1)
-    df_cori.to_csv(f'{dest_dir}/{file_name_cori}', sep=';', index=False, header=False)
+    print(df)
 
-    df_theta = df[df['id'] <= 23911].reset_index()
-    df_theta = df_theta.drop(['index'], axis=1)
-    df_theta.to_csv(f'{dest_dir}/{file_name_theta}', sep=';', index=False, header=False)
+    # Theta
+    df_t = df[df['cluster_id'] == 0]
+    df_t.loc[:, 'id'] = df_t['cluster_job_id']
+    df_t = df_t.sort_values('id')
+    print(df_theta)
+    df_t.to_csv(f'{dest_dir}/{file_name_theta}', sep=';', index=False, header=False)
 
-
+    # Cori
+    df_c = df[df['cluster_id'] == 1]
+    df_c.loc[:, 'id'] = df_c['cluster_job_id']
+    df_c = df_c.sort_values('id')
+    print(df_cori)
+    df_c.to_csv(f'{dest_dir}/{file_name_cori}', sep=';', index=False, header=False)
 
 
 
@@ -358,19 +376,19 @@ if __name__ == '__main__':
 
     create_theta_cori_traces('../data/InputFiles', )
 
-    lock = multiprocessing.Manager().Lock()
-    p = []
+    # lock = multiprocessing.Manager().Lock()
+    # p = []
 
-    p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
-    p.append(multiprocessing.Process(target=exp_cori, args=(2, lock,)))
-    p.append(multiprocessing.Process(target=exp_theta_cori_merged, args=(3, lock,)))
-    p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
+    # p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
+    # p.append(multiprocessing.Process(target=exp_cori, args=(2, lock,)))
+    # p.append(multiprocessing.Process(target=exp_theta_cori_merged, args=(3, lock,)))
+    # p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
 
-    for proc in p:
-        proc.start()
+    # for proc in p:
+    #     proc.start()
     
-    for proc in p:
-        proc.join()
+    # for proc in p:
+    #     proc.join()
 
     # import sys
     # selector = int(sys.argv[1])

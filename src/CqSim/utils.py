@@ -1,24 +1,24 @@
 import shutil
 
 swf_columns = [
-    'id',           #1 
-    'submit',       #2
-    'wait',         #3
-    'run',          #4
-    'used_proc',    #5
-    'used_ave_cpu', #6
-    'used_mem',     #7
-    'req_proc',     #8
-    'req_time',     #9
-    'req_mem',      #10
-    'status',       #11
-    'user_id',      #12
-    'group_id',     #13
-    'num_exe',      #14
-    'num_queue',    #15
-    'num_part',     #16
-    'num_pre',      #17
-    'think_time',   #18
+    'id',             #1 
+    'submit',         #2
+    'wait',           #3
+    'run',            #4
+    'used_proc',      #5
+    'used_ave_cpu',   #6
+    'used_mem',       #7
+    'req_proc',       #8
+    'req_time',       #9
+    'req_mem',        #10 
+    'status',         #11
+    'cluster_id',     #12 Changed from user_id to cluster_id
+    'cluster_job_id', #13 Changed from group_id to cluster_job_id
+    'num_exe',        #14
+    'num_queue',      #15
+    'num_part',       #16
+    'num_pre',        #17
+    'think_time',     #18
     ]
 
 def copy_file(source, destination):
