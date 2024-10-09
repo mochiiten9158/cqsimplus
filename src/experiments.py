@@ -4,11 +4,66 @@ Import these functions to run various experiments.
 
 """
 from CqSim.Cqsim_plus import Cqsim_plus
-import tqdm
+from tqdm.auto import tqdm
 from utils import probabilistic_true, disable_print
 import pandas as pd
 import random
 import multiprocessing
+
+
+def exp_theta(tqdm_pos, tqdm_lock):
+    """
+    Experiment Theta
+
+    Simulates Theta 2022 jobs on Theta
+
+    """
+    tag = f'exp_only_theta'
+    trace_dir = '../data/InputFiles'
+    trace_file = 'exp_only_theta.csv'
+    cluster_proc = 4360
+
+
+    cqp = Cqsim_plus(tag = tag)
+    
+
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
+
+
+    sim = cqp.single_cqsim(trace_dir = trace_dir, trace_file = trace_file, proc_count= cluster_proc, parsed_trace=True)
+
+    # Configure sims to read all jobs
+    cqp.set_max_lines(sim, len(job_ids))
+    cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
+    cqp.disable_debug_module(sim)
+
+
+    tqdm_text = tag
+    with tqdm_lock:
+        bar = tqdm(
+            desc=tqdm_text,
+            total=len(job_ids),
+            position=tqdm_pos,
+            leave=False)
+
+    for _ in job_ids:
+        with disable_print():
+            cqp.line_step(sim, write_results=True)
+
+        with tqdm_lock:
+            bar.update(1)
+
+    while not cqp.check_sim_ended(sim):
+        with disable_print():
+            cqp.line_step(sim, write_results=True)
+
+    with tqdm_lock:
+        bar.close()
+
+    return {
+        "theta" : cqp.get_job_results(sim)
+    }
+    
 
 def exp_1(x, y, tqdm_pos, tqdm_lock):
     """
@@ -70,7 +125,7 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
@@ -189,7 +244,7 @@ def exp_2(x, tqdm_pos, tqdm_lock):
 
     tqdm_text = tag
     with tqdm_lock:
-        bar = tqdm.tqdm(
+        bar = tqdm(
             desc=tqdm_text,
             total=len(job_ids),
             position=tqdm_pos,
@@ -314,6 +369,9 @@ if __name__ == '__main__':
         p.append(multiprocessing.Process(target=exp_2, args=(1.20, 3, lock,)))
         p.append(multiprocessing.Process(target=exp_2, args=(1.25, 4, lock,)))
         p.append(multiprocessing.Process(target=exp_2, args=(1.30, 5, lock,)))
+
+    if selector == 6:
+        p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
 
 
     for proc in p:
