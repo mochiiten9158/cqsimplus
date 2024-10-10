@@ -2,7 +2,9 @@
 This example shows a way to "step through" cqsim.
 """
 
-from CqSim.Cqsim_plus import Cqsim_plus
+# from CqSim.Cqsim_plus import Cqsim_plus
+
+import CqSim.Cqsim_plus as Cqsim_plus
 
 # 2349370
 # trace_dir = '../data/InputFiles'
@@ -13,12 +15,12 @@ from CqSim.Cqsim_plus import Cqsim_plus
 # proc = 4320
 
 
-trace_dir = '../data/InputFiles'
-trace_file = 'theta_cori_100K.csv'
+trace_dir = '../../data/InputFiles'
+trace_file = 'theta_2022.csv'
 proc = 14008
 
 # Create Cqsim plus instance.
-cqp = Cqsim_plus(tag = 'test_theta')
+cqp = Cqsim_plus(tag = 'test')
 
 
 # Get job stats

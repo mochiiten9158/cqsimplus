@@ -9,61 +9,13 @@ from utils import probabilistic_true, disable_print
 import pandas as pd
 import random
 import multiprocessing
+import datetime
 
 
-def exp_theta(tqdm_pos, tqdm_lock):
-    """
-    Experiment Theta
+now = datetime.datetime.now()
+formatted_date_time = now.strftime("%m_%d_%H_%M")
+master_exp_directory = f'../data/Results/exp_theta_two_parts/'
 
-    Simulates Theta 2022 jobs on Theta
-
-    """
-    tag = f'exp_only_theta'
-    trace_dir = '../data/InputFiles'
-    trace_file = 'exp_only_theta.csv'
-    cluster_proc = 4360
-
-
-    cqp = Cqsim_plus(tag = tag)
-    
-
-    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file, parsed_trace=True)
-
-
-    sim = cqp.single_cqsim(trace_dir = trace_dir, trace_file = trace_file, proc_count= cluster_proc, parsed_trace=True)
-
-    # Configure sims to read all jobs
-    cqp.set_max_lines(sim, len(job_ids))
-    cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
-    cqp.disable_debug_module(sim)
-
-
-    tqdm_text = tag
-    with tqdm_lock:
-        bar = tqdm(
-            desc=tqdm_text,
-            total=len(job_ids),
-            position=tqdm_pos,
-            leave=False)
-
-    for _ in job_ids:
-        with disable_print():
-            cqp.line_step(sim, write_results=True)
-
-        with tqdm_lock:
-            bar.update(1)
-
-    while not cqp.check_sim_ended(sim):
-        with disable_print():
-            cqp.line_step(sim, write_results=True)
-
-    with tqdm_lock:
-        bar.close()
-
-    return {
-        "theta" : cqp.get_job_results(sim)
-    }
-    
 
 def exp_1(x, y, tqdm_pos, tqdm_lock):
     """
@@ -72,6 +24,7 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
     Cluster setup:
         Cluster 1 uses original runtime
         Cluster 2 runs at a factor of x
+        Cluster 3 is the original cluster (Theta)
 
     Scheduling Strategy:
         The user selects the faster cluster with y% probability.
@@ -88,38 +41,49 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
     results: dict
         result of the experiment
     """
-    tag = f'probable_user_{x}_{y}'
-    cqp = Cqsim_plus(tag = tag)
-    cqp.disable_child_stdout = True
+    cqp = Cqsim_plus()
 
+    # Setup output related vars
+    tag = f'probable_user_{x}_{y}'
+    exp_out = f'{master_exp_directory}/{tag}'
+    cqp.set_exp_directory(exp_out)
+
+    # Setup input related vars
     trace_dir = '../data/InputFiles'
     trace_file = 'theta_2022.swf'
     cluster1_proc = 2180
     cluster2_proc = 2180
-
-    # Cluster 1 original runtime.
-    id1 = cqp.single_cqsim(
-        trace_dir, 
-        trace_file, 
-        proc_count=cluster1_proc)
-    
-
-    # Cluster 2 runs at a factor of x.
-    id2 = cqp.single_cqsim(
-        trace_dir, 
-        trace_file, 
-        proc_count=cluster2_proc)
-    cqp.set_job_run_scale_factor(id2, x)
-    cqp.set_job_walltime_scale_factor(id2, x)
-
-    sims = [id1, id2]
+    theta_proc = 4360
 
     # Get job stats
-    job_ids, job_procs = cqp.get_job_data(trace_dir, trace_file)
-    job_submits = cqp.get_job_submits(trace_dir, trace_file)
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file)
+
+    # Cluster 1 original runtime.
+    cluster1 = cqp.single_cqsim(
+        trace_dir, 
+        trace_file, 
+        proc_count=cluster1_proc,
+        sim_tag='cluster_1')
+    
+    # Cluster 2 runs at a factor of x.
+    cluster2 = cqp.single_cqsim(
+        trace_dir, 
+        trace_file, 
+        proc_count=cluster2_proc,
+        sim_tag='cluster_2')
+    cqp.set_job_run_scale_factor(cluster2, x)
+    cqp.set_job_walltime_scale_factor(cluster2, x)
+
+    # Theta
+    theta = cqp.single_cqsim(
+        trace_dir,
+        trace_file,
+        proc_count=theta_proc,
+        sim_tag='theta'
+    )
 
     # Configure sims to read all jobs
-    for sim in sims:
+    for sim in [cluster1, cluster2, theta]:
         cqp.set_max_lines(sim, len(job_ids))
         cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
 
@@ -131,20 +95,21 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
             position=tqdm_pos,
             leave=False)
     
+    # Iterate over all jobs
     for i in range(len(job_ids)):
 
+        # Find the sims that can schedule the job
         valid_sims = []
-        for sim in sims:
-            
+        for sim in [cluster1, cluster2]:
 
             # Check if the job can be run
             if job_procs[i] > cqp.sim_procs[sim]:
                 continue
             valid_sims.append(sim)    
         
-        # If none of the clusters could run, skip the job
+        # If none of the clusters could run, skip the job for all clusters
         if len(valid_sims) == 0:
-            for sim in sims:
+            for sim in [cluster1, cluster2, theta]:
                 cqp.disable_next_job(sim)
                 with disable_print():
                     cqp.line_step(sim)
@@ -156,16 +121,15 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
         elif len(valid_sims) == 2:
             if probabilistic_true(y):
                 # Choose cluster 1.
-                selected_sim = sims[0]
+                selected_sim = cluster1
 
             else:
                 # Chose cluster 2.
-                selected_sim = sims[1]
+                selected_sim = cluster2
 
 
-        # selected_sim = random.choice(valid_sims)
-
-        for sim in sims:
+        # Add the job to the appropriate cluster and continue main simulation.
+        for sim in [cluster1, cluster2]:
             
             if sim == selected_sim:
                 cqp.enable_next_job(sim)            
@@ -174,24 +138,30 @@ def exp_1(x, y, tqdm_pos, tqdm_lock):
             
             with disable_print():
                 cqp.line_step(sim)
-        
+
+        # Simulate the job for theta
+        with disable_print():
+            cqp.enable_next_job(theta)
+            cqp.line_step(theta)
+
         with tqdm_lock:
             bar.update(1)
 
     with tqdm_lock:
         bar.close()
 
-
-    
+    sims = [cluster1, cluster2, theta]
     # Run all the simulations until complete.
     while not cqp.check_all_sim_ended(sims):
         for sim_id in sims:
             with disable_print():
                 cqp.line_step(sim_id)
+    
 
     return {
-        "cluster 1" : cqp.get_job_results(sims[0]),
-        "cluster 2" : cqp.get_job_results(sims[1])
+        "cluster_1" : cqp.get_job_results(cluster1),
+        "cluster_2" : cqp.get_job_results(cluster2),
+        "theta" : cqp.get_job_results(theta)
     }
 
 def exp_2(x, tqdm_pos, tqdm_lock):
@@ -201,44 +171,61 @@ def exp_2(x, tqdm_pos, tqdm_lock):
     Cluster setup:
         Cluster 1 uses original runtime
         Cluster 2 runs at a factor of x
+        Cluster 3 is the original cluseter (theta)
 
     Scheduling Strategy:
         Always select the cluster with the lowest turnaround.
     """
+    cqp = Cqsim_plus()
+
+    # Setup output related vars
     tag = f'optimal_turnaround_{x}'
+    exp_out = f'{master_exp_directory}/{tag}'
+    cqp.set_exp_directory(exp_out)
+
+    # Setup input related vars
     trace_dir = '../data/InputFiles'
     trace_file = 'theta_2022.swf'
     cluster1_proc = 2180
     cluster2_proc = 2180
+    theta_proc = 4360
+
+    # Get job stats
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file)
 
 
-    cqp = Cqsim_plus(tag = tag)
-    cqp.disable_child_stdout = True
 
     # Cluster 1 original runtime.
-    id1 = cqp.single_cqsim(
+    cluster_1 = cqp.single_cqsim(
         trace_dir, 
         trace_file, 
-        proc_count=cluster1_proc)
+        proc_count=cluster1_proc,
+        sim_tag='cluster_1')
     
 
     # Cluster 2 runs at a factor of x.
-    id2 = cqp.single_cqsim(
+    cluster_2 = cqp.single_cqsim(
         trace_dir, 
         trace_file, 
-        proc_count=cluster2_proc)
-    cqp.set_job_run_scale_factor(id2, x)
-    cqp.set_job_walltime_scale_factor(id2, x)
+        proc_count=cluster2_proc,
+        sim_tag='cluster_2')
+    cqp.set_job_run_scale_factor(cluster_2, x)
+    cqp.set_job_walltime_scale_factor(cluster_2, x)
 
-    sims = [id1, id2]
 
+    # Theta
+    theta = cqp.single_cqsim(
+        trace_dir,
+        trace_file,
+        proc_count=theta_proc,
+        sim_tag='theta'
+    )
 
     # Get job stats
-    job_ids, job_procs = cqp.get_job_data(trace_dir, trace_file)
-    job_submits = cqp.get_job_submits(trace_dir, trace_file)
+    job_ids, job_procs, job_submits = cqp.get_job_data(trace_dir, trace_file)
 
     # Configure sims to read all jobs
-    for sim in sims:
+    for sim in [cluster_1, cluster_2, theta]:
         cqp.set_max_lines(sim, len(job_ids))
         cqp.set_sim_times(sim, real_start_time=job_submits[0], virtual_start_time=0)
 
@@ -252,10 +239,10 @@ def exp_2(x, tqdm_pos, tqdm_lock):
 
     for i in range(len(job_ids)):
 
-
         turnarounds = {}
-        # First simulate the new job on both clusters.
-        for sim in sims:
+
+        # First simulate the new job on both clusters that are part of meta scheduling
+        for sim in [cluster_1, cluster_2]:
 
             # Check if the job can be run.
             if job_procs[i] > cqp.sim_procs[sim]:
@@ -277,33 +264,39 @@ def exp_2(x, tqdm_pos, tqdm_lock):
 
         # If none of the clusters could run, skip the job.
         if len(turnarounds) == 0:
-            for sim in sims:
+            for sim in [cluster_1, cluster_2, theta]:
                 cqp.disable_next_job(sim)
                 with disable_print():
                     cqp.line_step(sim)
             continue
         
-
         # Get the cluster with the lowest turnaround.
         lowest_turnaround = min(turnarounds.values())
         sims_with_lowest_turnaround = [key for key, value in turnarounds.items() if value == lowest_turnaround]
         selected_sim = random.choice(sims_with_lowest_turnaround)
 
         # Add the job to the appropriate cluster and continue main simulation.
-        for sim in sims:
+        for sim in [cluster_1, cluster_2]:
             if sim == selected_sim:
                 cqp.enable_next_job(sim)            
             else:
                 cqp.disable_next_job(sim)
             with disable_print():
                 cqp.line_step(sim)
-        
+
+        # Simulate the job for theta
+        with disable_print():
+            cqp.enable_next_job(theta)
+            cqp.line_step(theta)
+
         with tqdm_lock:
             bar.update(1)
 
     with tqdm_lock:
         bar.close()
 
+
+    sims = [cluster_1, cluster_2, theta]
     # Run all the simulations until complete.
     while not cqp.check_all_sim_ended(sims):
         for sim_id in sims:
@@ -311,14 +304,16 @@ def exp_2(x, tqdm_pos, tqdm_lock):
                 cqp.line_step(sim_id)
 
     return {
-        "cluster 1" : cqp.get_job_results(sims[0]),
-        "cluster 2" : cqp.get_job_results(sims[1])
+        "cluster_1" : cqp.get_job_results(cluster_1),
+        "cluster_2" : cqp.get_job_results(cluster_2),
+        "theta" : cqp.get_job_results(theta)
     }
 
 
 if __name__ == '__main__':
 
     lock = multiprocessing.Manager().Lock()
+
     p = []
 
     import sys
@@ -369,9 +364,6 @@ if __name__ == '__main__':
         p.append(multiprocessing.Process(target=exp_2, args=(1.20, 3, lock,)))
         p.append(multiprocessing.Process(target=exp_2, args=(1.25, 4, lock,)))
         p.append(multiprocessing.Process(target=exp_2, args=(1.30, 5, lock,)))
-
-    if selector == 6:
-        p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
 
 
     for proc in p:

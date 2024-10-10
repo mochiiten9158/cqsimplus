@@ -66,12 +66,13 @@ class Cqsim_plus:
         self.sim_tags = []
         # TODO: For now, each cqsim instance's IO folder is given a random name
         self.exp_directory = f'../data/Results/exp_{get_random_name()}'
-        self.traces = {}
         self.disable_child_stdout = True
         self.tag = tag
         if self.tag != None:
             self.exp_directory = f'../data/Results/{self.tag}'
 
+    def set_exp_directory(self, dir):
+        self.exp_directory = dir
 
     def set_sim_times(self, id, real_start_time, virtual_start_time):
         job_module = self.sim_modules[id].module['job']
@@ -166,13 +167,12 @@ class Cqsim_plus:
         sim_id : int
             An integer id of the newly created cqsim instance.
         """
-        sim_name = get_random_name()
         sim_id = len(self.sims)
 
-        output_dir = f'{self.exp_directory}/Results'
-        debug_dir = f'{self.exp_directory}/Debug'
-        fmt_dir = f'{self.exp_directory}/Fmt'
-        plus_dir = f'{self.exp_directory}/plus'
+        output_dir = f'{self.exp_directory}/{sim_tag}/Results'
+        debug_dir = f'{self.exp_directory}/{sim_tag}/Debug'
+        fmt_dir = f'{self.exp_directory}/{sim_tag}/Fmt'
+        plus_dir = f'{self.exp_directory}/{sim_tag}/plus'
 
         for dir in [output_dir, debug_dir, fmt_dir, plus_dir]:
             if not os.path.exists(dir):
@@ -180,12 +180,12 @@ class Cqsim_plus:
 
         trace_name = trace_file.split('.')[0]
 
-        output_sys_file = f'{trace_name}_{sim_id}.ult'
-        output_adapt_file = f'{trace_name}_{sim_id}.adp'
-        output_result_file = f'{trace_name}_{sim_id}.rst'
+        output_sys_file = f'{trace_name}.ult'
+        output_adapt_file = f'{trace_name}.adp'
+        output_result_file = f'{trace_name}.rst'
 
         # Debug module
-        debug_log = f'{trace_name}_{sim_id}_debug.log'
+        debug_log = f'{trace_name}_debug.log'
         module_debug = Class_Debug_log.Debug_log(
             lvl=3,
             show=2,
@@ -195,21 +195,13 @@ class Cqsim_plus:
         self.module_debug = module_debug
 
         # Filter SWF module -- If needed
-        fmt_job_file = f'{trace_name}_{sim_id}.csv'
-        fmt_job_config_file = f'{trace_name}_{sim_id}.con'
-        fmt_node_file = f'{trace_name}_{sim_id}_node.csv'
-        fmt_node_config_file = f'{trace_name}_{sim_id}_node.con'
-        
-        # Avoid parsing SWF traces that have been parsed before by another sim
-        if f'{trace_dir}/{trace_file}' in self.traces:
-            temp_sim_id = self.traces[f'{trace_dir}/{trace_file}']
-            fmt_job_file = f'{trace_name}_{temp_sim_id}.csv'
-            fmt_job_config_file = f'{trace_name}_{temp_sim_id}.con'
-            fmt_node_file = f'{trace_name}_{temp_sim_id}_node.csv'
-            fmt_node_config_file = f'{trace_name}_{temp_sim_id}_node.con'
-
+        fmt_job_file = f'{trace_name}.csv'
+        fmt_job_config_file = f'{trace_name}.con'
+        fmt_node_file = f'{trace_name}_node.csv'
+        fmt_node_config_file = f'{trace_name}_node.con'
+    
         # If the trace parsed is already in in .csv
-        elif parsed_trace:
+        if parsed_trace:
 
             destination = f'{fmt_dir}/{fmt_job_file}'
             source = f'{trace_dir}/{trace_file}'
@@ -331,9 +323,7 @@ class Cqsim_plus:
         self.sims.append(cqsim)
         self.line_counters.append(0)
         self.end_flags.append(False)
-        self.sim_names.append(sim_name)
         self.sim_modules.append(module_sim)
-        self.traces[f'{trace_dir}/{trace_file}'] = sim_id
         self.sim_procs.append(proc_count)
         self.sim_uses_parsed_trace.append(parsed_trace)
         if sim_tag == 'sim':

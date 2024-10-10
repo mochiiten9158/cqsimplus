@@ -28,7 +28,7 @@ class Theta(Procedure):
         self.job_procs = None
         self.job_submits = None
         self.trace_dir = '../data/InputFiles'
-        self.trace_file = 'only_theta.csv'
+        self.trace_file = 'exp_only_theta.csv'
         self.proc = 4360
         self.cqp = Cqsim_plus(tag = 'gui_only_cori')
         self.job_ids, self.job_procs, self.job_submits = self.cqp.get_job_data(self.trace_dir, self.trace_file, parsed_trace=True)
@@ -70,7 +70,7 @@ class MainWindow(ManagedWindow):
 
     def __init__(self):
         super().__init__(
-            procedure_class=Cori,
+            procedure_class=Theta,
             x_axis='Iteration',
             y_axis='Random Number'
         )
