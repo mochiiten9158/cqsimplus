@@ -28,7 +28,7 @@ swf_columns = [
     'cluster_id',     #12 Changed from user_id to cluster_id
     'cluster_job_id', #13 Changed from group_id to cluster_job_id
     'num_exe',        #14
-    'num_queue',      #15
+    'is_gpu',         #15 Changed from num_queue
     'num_part',       #16
     'num_pre',        #17
     'think_time',     #18
