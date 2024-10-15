@@ -8,16 +8,32 @@ import IOModule.Debug_log as Class_Debug_log
 import Extend.SWF.Filter_job_SWF as filter_job_ext
 import Extend.SWF.Filter_node_SWF as filter_node_ext
 import Extend.SWF.Node_struc_SWF as node_struc_ext
-from CqSim.utils import swf_columns
 import pandas as pd
 import shutil
 import os
 import utils
 
+swf_columns = [
+    'id',             #1 
+    'submit',         #2
+    'wait',           #3
+    'run',            #4
+    'used_proc',      #5
+    'used_ave_cpu',   #6
+    'used_mem',       #7
+    'req_proc',       #8
+    'req_time',       #9
+    'req_mem',        #10 
+    'status',         #11
+    'cluster_id',     #12 Changed from user_id to cluster_id
+    'cluster_job_id', #13 Changed from group_id to cluster_job_id
+    'num_exe',        #14
+    'num_queue',      #15
+    'num_part',       #16
+    'num_pre',        #17
+    'think_time',     #18
+    ]
 
-
-def read_job_data_csv(trace_dif, trace_file):
-    pass
 
 def read_job_data_swf(trace_dir, trace_file):
     """
