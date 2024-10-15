@@ -14,7 +14,7 @@ import os
 import utils
 
 swf_columns = [
-    'id',             #1 
+    'id',             #1
     'submit',         #2
     'wait',           #3
     'run',            #4
