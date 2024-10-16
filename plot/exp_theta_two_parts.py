@@ -57,8 +57,8 @@ def violin_cmp_2_exp_wait_v_node_count(
     exp1_cpy = exp1_net.copy()
     exp2_cpy = exp2_net.copy()
 
-    exp1_cpy['proc_binned'] = 'overall'
-    exp2_cpy['proc_binned'] = 'overall'
+    exp1_cpy['proc_binned'] = 'Overall'
+    exp2_cpy['proc_binned'] = 'Overall'
 
     showlegend = True
     fig = go.Figure()
@@ -86,8 +86,8 @@ def violin_cmp_2_exp_wait_v_node_count(
         showlegend=False
         
     fig.add_trace(go.Violin(
-        x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'overall'],
-        y=exp1_cpy['wait_m'][exp1_cpy['proc_binned'] == 'overall'],
+        x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'Overall'],
+        y=exp1_cpy['wait_m'][exp1_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
@@ -96,8 +96,8 @@ def violin_cmp_2_exp_wait_v_node_count(
         showlegend=showlegend
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'overall'],
-        y=exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'overall'],
+        x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'Overall'],
+        y=exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -116,9 +116,15 @@ def violin_cmp_2_exp_wait_v_node_count(
         violingap=0, 
         violingroupgap=0,
         violinmode='overlay', 
-        title="Violin Plot of Wait Time Distribution by Processor Bins and Experiment",
-        xaxis_title="Processor Bins",
-        yaxis_title="Wait Time (min)"
+        title="Violin Plot of Wait Time Distribution by Job Size and Experiment",
+        xaxis_title="Job Size",
+        yaxis_title="Wait Time (min)",
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
     )
 
 
@@ -167,10 +173,9 @@ def violin_cmp_2_exp_wait_v_walltime(
     exp1_cpy = exp1_net.copy()
     exp2_cpy = exp2_net.copy()
 
-    exp1_cpy['walltime_binned'] = 'overall'
-    exp2_cpy['walltime_binned'] = 'overall'
+    exp1_cpy['walltime_binned'] = 'Overall'
+    exp2_cpy['walltime_binned'] = 'Overall'
 
-    showlegend = True
     fig = go.Figure()
     for label in labels:
         fig.add_trace(go.Violin(
@@ -181,7 +186,7 @@ def violin_cmp_2_exp_wait_v_walltime(
             name=exp_1_name,
             side='negative',
             line_color='blue',
-            showlegend=showlegend
+            showlegend=False
         ))
         fig.add_trace(go.Violin(
             x=exp2_net['walltime_binned'][exp2_net['walltime_binned'] == label],
@@ -191,29 +196,28 @@ def violin_cmp_2_exp_wait_v_walltime(
             name=exp_2_name,
             side='positive',
             line_color='orange',
-            showlegend=showlegend
+            showlegend=False
         ))
-        showlegend=False
         
     fig.add_trace(go.Violin(
-        x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'overall'],
-        y=exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'overall'],
+        x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
+        y=exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
         side='negative',
         line_color='blue',
-        showlegend=showlegend
+        showlegend=True
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'overall'],
-        y=exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'overall'],
+        x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'Overall'],
+        y=exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
         side='positive',
         line_color='orange',
-        showlegend=showlegend
+        showlegend=True
     ))
 
     fig.update_traces(
@@ -226,9 +230,15 @@ def violin_cmp_2_exp_wait_v_walltime(
         violingap=0, 
         violingroupgap=0,
         violinmode='overlay', 
-        title="Violin Plot of Wait Time Distribution by Processor Bins and Experiment",
-        xaxis_title="Walltime Bins (min)",
-        yaxis_title="Wait Time (min)"
+        title="Violin Plot of Wait Time Distribution by Job Size and Experiment",
+        xaxis_title="Job Walltime (min)",
+        yaxis_title="Wait Time (min)",
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
     )
 
 
@@ -276,8 +286,8 @@ def violin_cmp_2_exp_boslo_v_node_count(
     exp1_cpy = exp1_net.copy()
     exp2_cpy = exp2_net.copy()
 
-    exp1_cpy['proc_binned'] = 'overall'
-    exp2_cpy['proc_binned'] = 'overall'
+    exp1_cpy['proc_binned'] = 'Overall'
+    exp2_cpy['proc_binned'] = 'Overall'
 
     showlegend = True
     fig = go.Figure()
@@ -305,8 +315,8 @@ def violin_cmp_2_exp_boslo_v_node_count(
         showlegend=False
         
     fig.add_trace(go.Violin(
-        x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'overall'],
-        y=exp1_cpy['bounded_slowdown'][exp1_cpy['proc_binned'] == 'overall'],
+        x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'Overall'],
+        y=exp1_cpy['bounded_slowdown'][exp1_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
@@ -315,8 +325,8 @@ def violin_cmp_2_exp_boslo_v_node_count(
         showlegend=showlegend
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'overall'],
-        y=exp2_cpy['bounded_slowdown'][exp2_cpy['proc_binned'] == 'overall'],
+        x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'Overall'],
+        y=exp2_cpy['bounded_slowdown'][exp2_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -335,9 +345,15 @@ def violin_cmp_2_exp_boslo_v_node_count(
         violingap=0, 
         violingroupgap=0,
         violinmode='overlay', 
-        title="Violin Plot of Wait Time Distribution by Processor Bins and Experiment",
-        xaxis_title="Processor Bins (Count)",
-        yaxis_title="Bounded Slowdown"
+        title="Violin Plot of Wait Time Distribution by Job Size and Experiment",
+        xaxis_title="Job Size",
+        yaxis_title="Bounded Slowdown",
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
     )
 
 
@@ -386,10 +402,9 @@ def violin_cmp_2_exp_boslo_v_walltime(
     exp1_cpy = exp1_net.copy()
     exp2_cpy = exp2_net.copy()
 
-    exp1_cpy['walltime_binned'] = 'overall'
-    exp2_cpy['walltime_binned'] = 'overall'
+    exp1_cpy['walltime_binned'] = 'Overall'
+    exp2_cpy['walltime_binned'] = 'Overall'
 
-    showlegend = True
     fig = go.Figure()
     for label in labels:
         fig.add_trace(go.Violin(
@@ -400,7 +415,7 @@ def violin_cmp_2_exp_boslo_v_walltime(
             name=exp_1_name,
             side='negative',
             line_color='blue',
-            showlegend=showlegend
+            showlegend=False
         ))
         fig.add_trace(go.Violin(
             x=exp2_net['walltime_binned'][exp2_net['walltime_binned'] == label],
@@ -410,29 +425,29 @@ def violin_cmp_2_exp_boslo_v_walltime(
             name=exp_2_name,
             side='positive',
             line_color='orange',
-            showlegend=showlegend
+            showlegend=False
         ))
-        showlegend=False
+        # showlegend=False
         
     fig.add_trace(go.Violin(
-        x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'overall'],
-        y=exp1_cpy['bounded_slowdown'][exp1_cpy['walltime_binned'] == 'overall'],
+        x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
+        y=exp1_cpy['bounded_slowdown'][exp1_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
         side='negative',
         line_color='blue',
-        showlegend=showlegend
+        showlegend=True
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'overall'],
-        y=exp2_cpy['bounded_slowdown'][exp2_cpy['walltime_binned'] == 'overall'],
+        x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'Overall'],
+        y=exp2_cpy['bounded_slowdown'][exp2_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
         side='positive',
         line_color='orange',
-        showlegend=showlegend
+        showlegend=True
     ))
 
     fig.update_traces(
@@ -445,9 +460,15 @@ def violin_cmp_2_exp_boslo_v_walltime(
         violingap=0, 
         violingroupgap=0,
         violinmode='overlay', 
-        title="Violin Plot of Bounded Slowdown Distribution by Processor Bins and Experiment",
-        xaxis_title="Walltime Bins (min)",
-        yaxis_title="Bounded Slowdown"
+        title="Violin Plot of Bounded Slowdown Distribution by Job Size and Experiment",
+        xaxis_title="Job Walltime (min)",
+        yaxis_title="Bounded Slowdown",
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
     )
 
 
