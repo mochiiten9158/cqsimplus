@@ -155,11 +155,15 @@ class Output_log:
         self.job_result.file_close()
 
 
-    def get_result():
+    def get_result(self):
         '''
         Returns a data frame with results after simulation
         '''
-        pass
+        column_names = ['id', 'proc1', 'proc2','walltime', 'run', 'wait', 'submit', 'start', 'end']
+        presults = [result.split(';') for result in self.results]
+        df = pd.DataFrame(presults, columns = column_names) 
+        df = df.astype(float)
+        return df
 
     '''
     def print_result(self, job_module):

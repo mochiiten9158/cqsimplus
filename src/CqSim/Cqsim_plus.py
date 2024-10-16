@@ -341,6 +341,79 @@ class Cqsim_plus:
         return sorted_df
 
 
+    def predict_next_job_turnarounds(self, ids, job_id):
+        """
+        Takes a list of simulators of given ids. Reads the next job.
+        Runs the simulators in a child process and returns the turnarounds
+        of the newly read job.
+
+        Parameters
+        ----------
+        ids : list[int]
+            id of a cqsim instances stored in self.sims
+
+        Returns
+        -------
+        turnarounds : list[float]
+            list of turnaround times for the next job on each simulator.
+
+        """
+        parent_conn, child_conn = Pipe()
+
+        p = Process(target=self._predict_next_job_turnarounds, args=(ids, job_id, child_conn,))
+        p.start()
+        child_conn.close()
+        turnarounds = []
+        while True:
+            try:
+                msg = parent_conn.recv()
+                turnarounds.append(float(msg))
+            except EOFError:  # Child closed the connection
+                break
+        p.join()
+        parent_conn.close()
+        return turnarounds
+    
+    def _predict_next_job_turnarounds(self, ids, job_id, conn):
+
+
+        turnarounds = []
+        for id in ids:
+
+            # Modify the job module so that no new jobs are read.
+            job_module = self.sim_modules[id].module['job']
+            job_module.update_max_lines(self.line_counters[id] + 1)
+
+            # Disable outputs of debug, log and output modules.
+            debug_module = self.sim_modules[id].module['debug']
+            output_module = self.sim_modules[id].module['output']
+            debug_module.disable()
+            output_module.disable()
+
+            if self.disable_child_stdout:
+                with open(os.devnull, 'w') as sys.stdout:
+                    while not self.check_sim_ended(id):
+                        self.line_step(id)
+            else:
+                with open(f'runon_{self.line_counters[id]}.txt', 'w') as sys.stdout:
+                    while not self.check_sim_ended(id):
+                        self.line_step(id)
+
+            df = output_module.get_result()
+            # Get the results for the job we just simulated
+            last_job_results = df.loc[df['id'] == job_id]
+
+            # Get the turnaround of the latest job.
+            last_job_turnaround = last_job_results['end'] - last_job_results['submit']
+            turnarounds.append(last_job_turnaround)
+
+        for turnaround in turnarounds:
+            conn.send(turnaround)
+        conn.close()
+
+
+
+
     def line_step(self, id, write_results = False) -> None:
         """
         Advances a certain simulator with given id by one line in the job file.
