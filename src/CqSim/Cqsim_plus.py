@@ -341,7 +341,7 @@ class Cqsim_plus:
         return sorted_df
 
 
-    def predict_next_job_turnarounds(self, ids, job_id):
+    def predict_next_job_turnarounds(self, ids, job_id, job_proc):
         """
         Takes a list of simulators of given ids. Reads the next job.
         Runs the simulators in a child process and returns the turnarounds
@@ -360,25 +360,31 @@ class Cqsim_plus:
         """
         parent_conn, child_conn = Pipe()
 
-        p = Process(target=self._predict_next_job_turnarounds, args=(ids, job_id, child_conn,))
+        p = Process(target=self._predict_next_job_turnarounds, args=(ids, job_id, job_proc, child_conn,))
         p.start()
         child_conn.close()
-        turnarounds = []
+        json_str = ""
         while True:
             try:
                 msg = parent_conn.recv()
-                turnarounds.append(float(msg))
+                json_str = json_str + msg
             except EOFError:  # Child closed the connection
                 break
         p.join()
         parent_conn.close()
-        return turnarounds
+
+        results = json.loads(json_str)
+
+        return results
     
-    def _predict_next_job_turnarounds(self, ids, job_id, conn):
+    def _predict_next_job_turnarounds(self, ids, job_id, job_proc, conn):
 
-
-        turnarounds = []
+        turnarounds = {}
         for id in ids:
+
+
+            if job_proc > self.sim_procs[id]:
+                continue
 
             # Modify the job module so that no new jobs are read.
             job_module = self.sim_modules[id].module['job']
@@ -405,10 +411,10 @@ class Cqsim_plus:
 
             # Get the turnaround of the latest job.
             last_job_turnaround = last_job_results['end'] - last_job_results['submit']
-            turnarounds.append(last_job_turnaround)
-
-        for turnaround in turnarounds:
-            conn.send(turnaround)
+            turnarounds[id] = float(last_job_turnaround.iloc[0])
+        
+        json_string = json.dumps(turnarounds)
+        conn.send(str(json_string))
         conn.close()
 
 
