@@ -354,8 +354,8 @@ class Cqsim_plus:
 
         Returns
         -------
-        turnarounds : list[float]
-            list of turnaround times for the next job on each simulator.
+        turnarounds : dict[sim_id -> float]
+            a dict mapping sim_id to the turnarounds value for the given job_id
 
         """
         parent_conn, child_conn = Pipe()
