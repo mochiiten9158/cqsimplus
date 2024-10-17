@@ -28,6 +28,7 @@ import Extend.SWF.Node_struc_SWF as node_struc_ext
 __metaclass__ = type
 import pandas as pd
 from CqSim.utils import swf_columns
+from trace_utils import read_swf
 
 class Cqsim_plus:
     """
@@ -124,27 +125,31 @@ class Cqsim_plus:
 
 
 
-        module_debug = Class_Debug_log.Debug_log(
-            lvl=0,
-            show=0,
-            path= f'/dev/null',
-            log_freq=1
-        )
-        module_debug.disable()
-        save_name_j = f'/dev/null'
-        config_name_j = f'/dev/null'
-        module_filter_job = filter_job_ext.Filter_job_SWF(
-            trace=f'{trace_dir}/{trace_file}', 
-            save=save_name_j, 
-            config=config_name_j, 
-            debug=module_debug
-        )
-        module_filter_job.feed_job_trace()
-        module_filter_job.output_job_config()
 
-        job_ids = module_filter_job.job_ids
-        job_procs = module_filter_job.job_procs
-        job_submits = module_filter_job.job_submits
+        # module_debug = Class_Debug_log.Debug_log(
+        #     lvl=0,
+        #     show=0,
+        #     path= f'/dev/null',
+        #     log_freq=1
+        # )
+        # module_debug.disable()
+        # save_name_j = f'/dev/null'
+        # config_name_j = f'/dev/null'
+        # module_filter_job = filter_job_ext.Filter_job_SWF(
+        #     trace=f'{trace_dir}/{trace_file}', 
+        #     save=save_name_j, 
+        #     config=config_name_j, 
+        #     debug=module_debug
+        # )
+        # module_filter_job.feed_job_trace()
+        # module_filter_job.output_job_config()
+
+
+        swf_df = read_swf(trace_dir, trace_file)
+
+        job_ids = swf_df['id'].tolist()
+        job_procs = swf_df['req_proc'].tolist()
+        job_submits = swf_df['submit'].tolist()
 
         return job_ids, job_procs, job_submits
 
@@ -404,6 +409,8 @@ class Cqsim_plus:
                 with open(f'runon_{self.line_counters[id]}.txt', 'w') as sys.stdout:
                     while not self.check_sim_ended(id):
                         self.line_step(id)
+                    print(output_module.get_result())
+                    print(job_id)
 
             df = output_module.get_result()
             # Get the results for the job we just simulated

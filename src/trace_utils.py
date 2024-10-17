@@ -35,6 +35,33 @@ swf_columns = [
     ]
 
 
+
+def read_swf(trace_dir, trace_file):
+    """
+    Reads an SWF file into a dataframe
+
+    Args:
+        filename: The name of the file to read.
+
+    Returns:
+        A list of lists, where each inner list represents a processed line of input.
+    """
+    data = []
+
+    with open(f'{trace_dir}/{trace_file}', 'r') as file:
+        for line in file:
+        
+            # TODO: For now ignoring the header of the swf file
+            if line[0] == ';':
+                continue
+
+            # Split the line into elements, convert non-empty elements to integers
+            row = [int(x) for x in line.split() if x]
+            data.append(row)
+    df = pd.DataFrame(data, columns=swf_columns)
+    return df
+
+
 def read_job_data_swf(trace_dir, trace_file):
     """
     Read the job data from some trace.
@@ -76,3 +103,7 @@ def read_job_data_swf(trace_dir, trace_file):
     df.columns = swf_columns
     return df
     
+# trace_dir = '../data/InputFiles/theta_polaris_2023'
+# trace_file = 'polaris_theta_2023.swf'
+# df = read_swf(trace_dir, trace_file)
+# print(df)
