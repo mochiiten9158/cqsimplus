@@ -22,16 +22,6 @@ app.layout = html.Div([
     Output('graphs', 'children'),
     Input('my-range-slider', 'value'))
 def update_output(value):
-    start = 0
-    end = 31500000
-
-    # start_c = ((end - start)/12)*value[0]
-    # end_c = ((end - start)/12)*value[1]
-    # figs = homogeneous_break_down(start=start_c, end=end_c)
-    # figs_hom_nt = homogeneous_break_down_nt(start=start_c, end=end_c)
-    # figs_het = heterogeneous_break_down(1.3, 0.5, start=start_c, end=end_c)
-    # figs_het_nt = heterogeneous_break_down_nt(1.3, 0.5, start=start_c, end=end_c)
-    # figs_het2 = heterogeneous_break_down(1.1, 0.5, start=start_c, end=end_c)
     return dcc.Tabs([
         dcc.Tab(label='SGS-T vs Random (Homogeneous)', children=[
             *violin_cmp_2_exp_wait_v_node_count(
