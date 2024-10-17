@@ -49,7 +49,7 @@ def violin_cmp_2_exp_wait_v_node_count(
     # Remove first 1000 and last 1000 jobs
     # Cluster warmup period
     exp1_net = exp1_net.sort_values(by='id')
-    exp2_net = exp1_net.sort_values(by='id')
+    exp2_net = exp2_net.sort_values(by='id')
     exp1_net = exp1_net.iloc[1000:-1000]
     exp2_net = exp2_net.iloc[1000:-1000]
 
@@ -547,7 +547,7 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     # Remove first 1000 and last 1000 jobs
     # Cluster warmup period
     exp1_net = exp1_net.sort_values(by='id')
-    exp2_net = exp1_net.sort_values(by='id')  # Fixed typo here, should be exp2_net
+    exp2_net = exp2_net.sort_values(by='id')  # Fixed typo here, should be exp2_net
     exp1_net = exp1_net.iloc[1000:-1000]
     exp2_net = exp2_net.iloc[1000:-1000]
 
