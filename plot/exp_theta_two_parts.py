@@ -46,6 +46,11 @@ def violin_cmp_2_exp_wait_v_node_count(
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
 
+    exp1_net = exp1_net.sort_values(by='id')
+    exp2_net = exp2_net.sort_values(by='id')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
+
     exp1_net['wait_m'] = exp1_net['wait']/60
     exp2_net['wait_m'] = exp2_net['wait']/60
 
@@ -127,7 +132,6 @@ def violin_cmp_2_exp_wait_v_node_count(
         )
     )
 
-
     return [
         dcc.Markdown(
                         f"""
@@ -158,6 +162,11 @@ def violin_cmp_2_exp_wait_v_walltime(
 
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
+
+    exp1_net = exp1_net.sort_values(by='id')
+    exp2_net = exp2_net.sort_values(by='id')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
 
     exp1_net['walltime_m'] = exp1_net['walltime']/60
     exp2_net['walltime_m'] = exp2_net['walltime']/60
@@ -275,6 +284,11 @@ def violin_cmp_2_exp_boslo_v_node_count(
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
 
+    exp1_net = exp1_net.sort_values(by='id')
+    exp2_net = exp2_net.sort_values(by='id')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
+
     exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
     exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
 
@@ -387,6 +401,11 @@ def violin_cmp_2_exp_boslo_v_walltime(
 
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
+
+    exp1_net = exp1_net.sort_values(by='id')
+    exp2_net = exp2_net.sort_values(by='id')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
 
     exp1_net['walltime'] = exp1_net['walltime']/60
     exp2_net['walltime'] = exp2_net['walltime']/60
