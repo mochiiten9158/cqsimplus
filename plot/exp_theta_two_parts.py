@@ -26,7 +26,6 @@ from dash import Dash, html, dcc, Input, Output, callback
 
 
 
-
 def violin_cmp_2_exp_wait_v_node_count(
         exp1c1,
         exp1c2,
@@ -146,7 +145,7 @@ def violin_cmp_2_exp_wait_v_node_count(
     return [
         dcc.Markdown(
                         f"""
-TODO: ADD description
+Wait time (min) vs Job Size
 """
                     ),
         dcc.Graph(
@@ -269,7 +268,7 @@ def violin_cmp_2_exp_wait_v_walltime(
     return [
         dcc.Markdown(
                         f"""
-TODO: ADD description
+Wait time (min) vs Job Walltime (min)
 """
                     ),
         dcc.Graph(
@@ -279,6 +278,24 @@ TODO: ADD description
 
 def cal_boslow(df):
     return df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
+
+def cal_boslow95(df):
+    # Calculate bounded slowdown for each row
+    df['bounded_slowdown'] = df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
+
+    # Calculate mean and standard deviation of bounded slowdown
+    mean_slowdown = df['bounded_slowdown'].mean()
+    std_slowdown = df['bounded_slowdown'].std()
+
+    # Calculate 95% confidence interval
+    ci_lower = mean_slowdown - 1.96 * std_slowdown
+    ci_upper = mean_slowdown + 1.96 * std_slowdown
+
+    # Filter rows based on confidence interval
+    df_filtered = df[(df['bounded_slowdown'] >= ci_lower) & (df['bounded_slowdown'] <= ci_upper)]
+
+    return df_filtered
+
 
 def violin_cmp_2_exp_boslo_v_node_count(
         exp1c1,
@@ -393,7 +410,7 @@ def violin_cmp_2_exp_boslo_v_node_count(
     return [
         dcc.Markdown(
                         f"""
-TODO: ADD description
+Bounded Slowdown vs Job Size
 """
                     ),
         dcc.Graph(
@@ -517,7 +534,7 @@ def violin_cmp_2_exp_boslo_v_walltime(
     return [
         dcc.Markdown(
                         f"""
-TODO: ADD description
+Bounded Slowdown vs Job Walltime (min)
 """
                     ),
         dcc.Graph(
@@ -554,8 +571,11 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     exp1_net['walltime'] = exp1_net['walltime'] / 60
     exp2_net['walltime'] = exp2_net['walltime'] / 60
 
-    exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
-    exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
+    # exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
+    # exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
+
+    exp1_net = cal_boslow95(exp1_net)
+    exp2_net = cal_boslow95(exp2_net)
 
     bins = [0, 10, 30, 60, 120, 250, 500, 1000, 1500, float('inf')]
     labels = ['(0, 10]', '(10, 30]', '(30, 60]', '(60, 120]', '(120, 250]', '(250, 500]', '(500, 1000]', '(1000, 1500]',
@@ -572,19 +592,19 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     fig = go.Figure()
     for label in labels:
         # Calculate 95% confidence interval for each bin
-        exp1_bin = exp1_net[exp1_net['walltime_binned'] == label]['bounded_slowdown']
-        exp2_bin = exp2_net[exp2_net['walltime_binned'] == label]['bounded_slowdown']
+        # exp1_bin = exp1_net[exp1_net['walltime_binned'] == label]['bounded_slowdown']
+        # exp2_bin = exp2_net[exp2_net['walltime_binned'] == label]['bounded_slowdown']
         
-        exp1_ci = exp1_bin.quantile([0.025, 0.975])
-        exp2_ci = exp2_bin.quantile([0.025, 0.975])
+        # exp1_ci = exp1_bin.quantile([0.025, 0.975])
+        # exp2_ci = exp2_bin.quantile([0.025, 0.975])
 
-        # Filter data within the confidence interval
-        exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
-        exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
+        # # Filter data within the confidence interval
+        # exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
+        # exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
 
         fig.add_trace(go.Violin(
             x=exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label],
-            y=exp1_filtered,  # Use filtered data
+            y=exp1_net[exp1_net['walltime_binned'] == label]['bounded_slowdown'],
             legendgroup=exp_1_name,
             scalegroup=label,
             name=exp_1_name,
@@ -595,7 +615,7 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
         ))
         fig.add_trace(go.Violin(
             x=exp2_net['walltime_binned'][exp2_net['walltime_binned'] == label],
-            y=exp2_filtered,  # Use filtered data
+            y=exp2_net[exp2_net['walltime_binned'] == label]['bounded_slowdown'],
             legendgroup=exp_2_name,
             scalegroup=label,
             name=exp_2_name,
@@ -606,20 +626,20 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
         ))
 
     # Calculate 95% confidence interval for overall data
-    exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-    exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
+    # exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
+    # exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
 
     # Filter overall data within the confidence interval
-    exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
-        (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
-    ]
-    exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
-        (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
-    ]
+    # exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
+    #     (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
+    # ]
+    # exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
+    #     (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
+    # ]
 
     fig.add_trace(go.Violin(
         x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
-        y=exp1_overall_filtered,  # Use filtered data
+        y=exp1_cpy['bounded_slowdown'][exp1_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
@@ -630,7 +650,7 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     ))
     fig.add_trace(go.Violin(
         x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'Overall'],
-        y=exp2_overall_filtered,  # Use filtered data
+        y=exp2_cpy['bounded_slowdown'][exp2_cpy['walltime_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -664,7 +684,7 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     return [
         dcc.Markdown(
             f"""
-TODO: ADD description
+Bounded Slowdown in 95% CI vs Job Walltime (min)
 """
         ),
         dcc.Graph(
@@ -699,8 +719,22 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
     exp1_net = exp1_net.iloc[1000:-1000]
     exp2_net = exp2_net.iloc[1000:-1000]
 
-    exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
-    exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
+    # exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
+    # exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
+
+    exp1_net = cal_boslow95(exp1_net)
+    exp2_net = cal_boslow95(exp2_net)
+
+    # exp1_overall_ci = exp1_net['bounded_slowdown'].quantile([0.025, 0.975])
+    # exp2_overall_ci = exp2_net['bounded_slowdown'].quantile([0.025, 0.975])
+
+    # exp1_net['bounded_slowdown'] = exp1_net['bounded_slowdown'][
+    #     (exp1_net['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_net['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
+    # ]
+    # exp2_net['bounded_slowdown'] = exp2_net['bounded_slowdown'][
+    #     (exp2_net['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_net['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
+    # ]
+    
 
     bins = [0, 128, 256, 512, 1024, 2048, float('inf')]
     labels = ['(0, 128]', '(128, 256]', '(256, 512]', '(512, 1024]', '(1024, 2048]', '(2048, 2180]']
@@ -720,16 +754,16 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
         exp1_bin = exp1_net[exp1_net['proc_binned'] == label]['bounded_slowdown']
         exp2_bin = exp2_net[exp2_net['proc_binned'] == label]['bounded_slowdown']
 
-        exp1_ci = exp1_bin.quantile([0.025, 0.975])
-        exp2_ci = exp2_bin.quantile([0.025, 0.975])
+        # exp1_ci = exp1_bin.quantile([0.025, 0.975])
+        # exp2_ci = exp2_bin.quantile([0.025, 0.975])
 
-        # Filter data within the confidence interval
-        exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
-        exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
+        # # Filter data within the confidence interval
+        # exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
+        # exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
 
         fig.add_trace(go.Violin(
             x=exp1_net['proc_binned'][exp1_net['proc_binned'] == label],
-            y=exp1_filtered,  # Use filtered data
+            y=exp1_net['bounded_slowdown'][exp1_net['proc_binned'] == label],
             legendgroup=exp_1_name,
             scalegroup=label,
             name=exp_1_name,
@@ -740,7 +774,7 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
         ))
         fig.add_trace(go.Violin(
             x=exp2_net['proc_binned'][exp2_net['proc_binned'] == label],
-            y=exp2_filtered,  # Use filtered data
+            y=exp2_net['bounded_slowdown'][exp2_net['proc_binned'] == label],
             legendgroup=exp_2_name,
             scalegroup=label,
             name=exp_2_name,
@@ -752,20 +786,20 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
         showlegend = False
 
     # Calculate 95% confidence interval for overall data
-    exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-    exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
+    # exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
+    # exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
 
     # Filter overall data within the confidence interval
-    exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
-        (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
-    ]
-    exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
-        (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
-    ]
+    # exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
+    #     (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
+    # ]
+    # exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
+    #     (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
+    # ]
 
     fig.add_trace(go.Violin(
         x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'Overall'],
-        y=exp1_overall_filtered,  # Use filtered data
+        y=exp1_cpy['bounded_slowdown'][exp1_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
@@ -776,7 +810,7 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
     ))
     fig.add_trace(go.Violin(
         x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'Overall'],
-        y=exp2_overall_filtered,  # Use filtered data
+        y=exp2_cpy['bounded_slowdown'][exp2_cpy['proc_binned'] == 'Overall'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -810,7 +844,7 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
     return [
         dcc.Markdown(
             f"""
-TODO: ADD description
+Bounded Slowdown in 95% CI vs Job Size
 """
         ),
         dcc.Graph(
