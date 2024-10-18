@@ -67,6 +67,7 @@ class Basic_algorithm:
                 t = float(wait_job[i]['reqTime'])
                 n = float(wait_job[i]['reqProc'])
                 w = int(currentTime - s)
+                print(self.algStr)
                 self.scoreList.append(float(eval(self.algStr)))
                 i += 1
         #self.debug.debug("  Score:"+str(self.scoreList),4)
