@@ -67,12 +67,12 @@ def violin_cmp_2_exp_wait_v_node_count(
     # Assign each row a bin label for the column 'proc_binned'
     bins = [0, 128, 256, 512, 1024, 2048, float('inf')]
     labels = ['(0, 128]', '(128, 256]','(256, 512]','(512, 1024]', '(1024, 2048]', '(2048, 2180]']
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
     for _df, name in zip([exp1_net, exp2_net], [exp_1_name, exp_2_name]):
         _df['proc_binned'] = pd.cut(_df['proc1'], bins=bins, labels=labels, right=True)
 
 
     # Plot for each bin
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
     showlegend = True
     bin_index = 0  # To keep track of bin index
     for label in labels:
@@ -256,8 +256,6 @@ def violin_cmp_2_exp_wait_v_walltime(
     c3 = read_rst(exp2c1)
     c4 = read_rst(exp2c2)
 
-    fig = go.Figure()
-
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
 
@@ -272,8 +270,8 @@ def violin_cmp_2_exp_wait_v_walltime(
     exp1_net['wait_m'] = exp1_net['wait']/60
     exp2_net['wait_m'] = exp2_net['wait']/60
 
-    bins = [0, 10, 30, 60, 120, 250, 500, 1000, 1500, float('inf')]
-    labels = ['(0, 10]', '(10, 30]', '(30, 60]', '(60, 120]', '(120, 250]', '(250, 500]', '(500, 1000]', '(1000, 1500]', '(1500, max]']
+    bins = [10, 30, 60, 120, 250, 500, 1000, 1500]
+    labels = ['(10, 30]', '(30, 60]', '(60, 120]', '(120, 250]', '(250, 500]', '(500, 1000]', '(1000, 1500]']
     for _df, name in zip([exp1_net, exp2_net], [exp_1_name, exp_2_name]):
         _df['walltime_binned'] = pd.cut(_df['walltime_m'], bins=bins, labels=labels, right=True)
     
@@ -283,7 +281,7 @@ def violin_cmp_2_exp_wait_v_walltime(
     exp1_cpy['walltime_binned'] = 'Overall'
     exp2_cpy['walltime_binned'] = 'Overall'
 
-    fig = go.Figure()
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
     for label in labels:
         fig.add_trace(go.Violin(
             x=exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label],
@@ -307,7 +305,7 @@ def violin_cmp_2_exp_wait_v_walltime(
             showlegend=False,
             spanmode = 'hard'
         ))
-        
+
     fig.add_trace(go.Violin(
         x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
         y=exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'],
@@ -315,7 +313,7 @@ def violin_cmp_2_exp_wait_v_walltime(
         scalegroup='Overall',
         name=exp_1_name,
         side='negative',
-        line_color='blue',
+        line_color='green',
         showlegend=True,
         spanmode = 'hard'
     ))
@@ -349,8 +347,23 @@ def violin_cmp_2_exp_wait_v_walltime(
             y=0.99,
             xanchor="left",
             x=0.01
-        )
+        ),
+        xaxis={'categoryarray': labels, 'categoryorder': 'array'}
     )
+
+        # Add Job Counts
+    for _df, name in zip([exp1_net], [exp_1_name]):
+        bin_counts = _df['walltime_binned'].value_counts().sort_index()
+        fig.add_trace(go.Scatter(
+                x=bin_counts.index, 
+                y=bin_counts.values, 
+                name='Job counts per bin', 
+                mode='lines+markers',
+                line=dict(color='black'),  # Set line color
+                marker=dict(color='black')  # Set marker color
+            ),
+            secondary_y = True
+        )
 
 
     return [
@@ -491,7 +504,8 @@ def violin_cmp_2_exp_boslo_v_node_count(
             y=0.99,
             xanchor="left",
             x=0.01
-        )
+        ),
+        xaxis={'categoryarray': labels, 'categoryorder': 'array'}
     )
 
 
