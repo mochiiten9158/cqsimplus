@@ -212,7 +212,8 @@ def exp_polaris_theta_random(tqdm_pos, tqdm_lock):
                 cqp.disable_next_job(sim)
             with disable_print():
                 cqp.line_step(sim, write_results=True)
-        
+
+
         with tqdm_lock:
             bar.update(1)
 
@@ -290,40 +291,9 @@ def exp_polaris_theta_opt_turn(tqdm_pos, tqdm_lock):
         if job_gpus[i] == 1:
             selected_sim = polaris
         else:
-            turnarounds = {}
-            # First simulate the new job on both clusters.
-            # for sim in sims:
-
-            #     # Check if the job can be run.
-            #     if job_procs[i] > cqp.sim_procs[sim]:
-            #         continue
-                
-            #     # Run the simulation for only upto the next job.
-            #     results = cqp.line_step_run_on(sim)
-
-            #     # Parse the results
-            #     presults = [result.split(';') for result in results]
-            #     df = pd.DataFrame(presults, columns = ['id', 'reqProc', 'reqProc2', 'walltime', 'run', 'wait', 'submit', 'start', 'end']) 
-            #     df = df.astype(float)
-        
-            #     # Get the results for the job we just simulated
-            #     last_job_results = df.loc[df['id'] == job_ids[i]]
-
-            #     # Get the turnaround of the latest job.
-            #     last_job_turnaround = last_job_results['end'] - last_job_results['submit']
-            #     turnarounds[sim] = last_job_turnaround.item()
-
             turnarounds = cqp.predict_next_job_turnarounds(sims, job_ids[i], job_procs[i])
 
-            # If none of the clusters could run, skip the job.
             assert(len(turnarounds) != 0)
-            # if len(turnarounds) == 0:
-            #     for sim in sims:
-            #         cqp.disable_next_job(sim)
-            #         with disable_print():
-            #             cqp.line_step(sim, write_results=True)
-            #     continue
-            
 
             # Get the cluster with the lowest turnaround.
             lowest_turnaround = min(turnarounds.values())
@@ -339,7 +309,7 @@ def exp_polaris_theta_opt_turn(tqdm_pos, tqdm_lock):
                 cqp.disable_next_job(sim)
             with disable_print():
                 cqp.line_step(sim, write_results=True)
-        
+
         with tqdm_lock:
             bar.update(1)
 
@@ -365,11 +335,6 @@ if __name__ == '__main__':
 
     lock = multiprocessing.Manager().Lock()
     p = []
-
-    # p.append(multiprocessing.Process(target=exp_theta, args=(1, lock,)))
-    # p.append(multiprocessing.Process(target=exp_polaris, args=(2, lock,)))
-    # p.append(multiprocessing.Process(target=exp_polaris_theta_opt_turn, args=(3, lock,)))
-    # p.append(multiprocessing.Process(target=exp_theta_cori_opt_turn, args=(4, lock,)))
 
     for proc in p:
         proc.start()

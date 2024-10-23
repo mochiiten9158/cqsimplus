@@ -380,6 +380,12 @@ class Cqsim_plus:
 
         results = json.loads(json_str)
 
+
+        # Convert to the right data type
+        # results return from json.loads hasa the keys as strings
+        # the keys are the cluster ids which should be ints
+        results = {int(k):float(v) for k,v in results.items()}
+
         return results
     
     def _predict_next_job_turnarounds(self, ids, job_id, job_proc, conn):
