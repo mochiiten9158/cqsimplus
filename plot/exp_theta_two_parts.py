@@ -1,22 +1,4 @@
 '''
-
-Metrics:
-- wait time delta is the (actual wait time - experiment wait time). If this is positive then the job had lower wait time, otherwise the job suffered.
-
-Plots:
-- Scatter plot of delta wait time (minutes) vs submit time (mm-dd-yyyy)
-
-- Scatter plot of delta bounded slowdown vs submit time (mm-dd-yyyy)
-
-- Bar plot of no of jobs vs proc count bins for points whose wait delta is positive
-
-- Bar plot of no of jobs vs proc count bins for points whose wait delta is negative
-
-- Bar plot of no of jobs vs runtime bins for points whose wait delta is positive
-
-- Bar plot of no of jobs vs runtime bins for points whose wait delta is negative
-
-
 '''
 import pandas as pd
 import plotly.graph_objects as go
@@ -37,7 +19,6 @@ def violin_cmp_2_exp_wait_v_node_count(
         exp_1_name,
         exp_2_name,
         ):
-    
 
     # Read result files 
     c1 = read_rst(exp1c1)
@@ -47,14 +28,9 @@ def violin_cmp_2_exp_wait_v_node_count(
 
     exp1_net = pd.concat([c1, c2], axis=0)
     exp2_net = pd.concat([c3, c4], axis=0)
-    
+
     # Remove first 1000 and last 1000 jobs
     # Cluster warmup period
-    exp1_net = exp1_net.sort_values(by='id')
-    exp2_net = exp2_net.sort_values(by='id')
-    exp1_net = exp1_net.iloc[1000:-1000]
-    exp2_net = exp2_net.iloc[1000:-1000]
-
     exp1_net = exp1_net.sort_values(by='id')
     exp2_net = exp2_net.sort_values(by='id')
     exp1_net = exp1_net.iloc[1000:-1000]
@@ -63,18 +39,19 @@ def violin_cmp_2_exp_wait_v_node_count(
     exp1_net['wait_m'] = exp1_net['wait']/60
     exp2_net['wait_m'] = exp2_net['wait']/60
 
-
     # Assign each row a bin label for the column 'proc_binned'
     bins = [0, 128, 256, 512, 1024, 2048, float('inf')]
     labels = ['(0, 128]', '(128, 256]','(256, 512]','(512, 1024]', '(1024, 2048]', '(2048, 2180]']
     for _df, name in zip([exp1_net, exp2_net], [exp_1_name, exp_2_name]):
         _df['proc_binned'] = pd.cut(_df['proc1'], bins=bins, labels=labels, right=True)
 
-
     # Plot for each bin
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     showlegend = True
     bin_index = 0  # To keep track of bin index
+
+    total_jobs = len(exp1_net)  # Calculate total jobs for percentage calculation
+
     for label in labels:
         fig.add_trace(go.Violin(
             x=exp1_net['proc_binned'][exp1_net['proc_binned'] == label],
@@ -99,7 +76,7 @@ def violin_cmp_2_exp_wait_v_node_count(
             spanmode = 'hard'
         ))
         showlegend=False
-        
+
         # Calculate and add mean lines with adjusted x-positions
         mean_exp1 = exp1_net['wait_m'][exp1_net['proc_binned'] == label].mean()
         mean_exp2 = exp2_net['wait_m'][exp2_net['proc_binned'] == label].mean()
@@ -126,8 +103,16 @@ def violin_cmp_2_exp_wait_v_node_count(
                            text=f"Avg={mean_exp2:.2f}", showarrow=False,
                            font=dict(color='red'))
 
-        bin_index += 1
+        # Calculate job count and percentage for the bin
+        bin_count = len(exp1_net['proc_binned'][exp1_net['proc_binned'] == label])
+        bin_percent = (bin_count / total_jobs) * 100
 
+        # Add annotation for job count and percentage
+        fig.add_annotation(x=bin_index, y=y_range[1] * 1.15,  # Adjust position as needed
+                           text=f"Jobs: {bin_count} ({bin_percent:.1f}%)",
+                           showarrow=False, font=dict(size=10))
+
+        bin_index += 1
 
     # Plot the overall value
     exp1_cpy = exp1_net.copy()
@@ -149,8 +134,8 @@ def violin_cmp_2_exp_wait_v_node_count(
         spanmode = 'hard'
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['proc_binned'][exp2_cpy['proc_binned'] == 'Overall'],
-        y=exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'Overall'],
+        x=exp2_cpy['proc_binned'],
+        y=exp2_cpy['wait_m'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -160,20 +145,19 @@ def violin_cmp_2_exp_wait_v_node_count(
         spanmode = 'hard'
     ))
 
-    mean_exp1_overall = exp1_cpy['wait_m'][exp1_cpy['proc_binned'] == 'Overall'].mean()
-    mean_exp2_overall = exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'Overall'].mean()
+    mean_exp1_overall = exp1_cpy['wait_m'].mean()
+    mean_exp2_overall = exp2_cpy['wait_m'].mean()
 
     fig.add_shape(go.Line(x0=bin_index - 0.5, x1=bin_index, y0=mean_exp1_overall, y1=mean_exp1_overall, 
                           line=dict(color='green', width=2, dash='dash')))  
     fig.add_shape(go.Line(x0=bin_index, x1=bin_index + 0.5, y0=mean_exp2_overall, y1=mean_exp2_overall, 
                           line=dict(color='orange', width=2, dash='dash'))) 
-
-    # Add annotations for 'Overall' mean values
+    
     y_range_overall = [
-        min(exp1_cpy['wait_m'][exp1_cpy['proc_binned'] == 'Overall'].min(),
-            exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'Overall'].min()),
-        max(exp1_cpy['wait_m'][exp1_cpy['proc_binned'] == 'Overall'].max(),
-            exp2_cpy['wait_m'][exp2_cpy['proc_binned'] == 'Overall'].max())
+        min(exp1_cpy['wait_m'].min(),
+            exp2_cpy['wait_m'].min()),
+        max(exp1_cpy['wait_m'].max(),
+            exp2_cpy['wait_m'].max())
     ]
     y_offset_overall = (y_range_overall[1] - y_range_overall[0]) * 0.05  # 5% of the y-range
 
@@ -184,6 +168,11 @@ def violin_cmp_2_exp_wait_v_node_count(
     fig.add_annotation(x=bin_index + 0.25, y=mean_exp2_overall + y_offset_overall, 
                        text=f"Avg={mean_exp2_overall:.2f}", showarrow=False,
                        font=dict(color='red'))
+
+    # Add annotation for overall job count and percentage (which is 100%)
+    fig.add_annotation(x=bin_index, y=y_range_overall[1] * 1.1,  # Adjust position as needed
+                       text=f"Jobs: {total_jobs} (100%)",
+                       showarrow=False, font=dict(size=10))
 
     fig.update_traces(
         meanline_visible=True,
@@ -208,21 +197,6 @@ def violin_cmp_2_exp_wait_v_node_count(
         yaxis2=dict(title="Job Count")
     )
 
-    # Add Job Counts
-    for _df, name in zip([exp1_net], [exp_1_name]):
-
-        bin_counts = _df['proc_binned'].value_counts().sort_index()
-        fig.add_trace(go.Scatter(
-                x=bin_counts.index, 
-                y=bin_counts.values, 
-                name=f'Job counts per bin', 
-                mode='lines+markers',
-                line=dict(color='black'),  # Set line color
-                marker=dict(color='black')  # Set marker color
-            ),
-            secondary_y = True
-        )
-
     return [
         dcc.Markdown(
                         f"""
@@ -234,7 +208,9 @@ Wait time (min) vs Job Size
             ),
     ]
 
-
+###################################################################
+# Wait Time vs Walltime (Binned)
+###################################################################
 def violin_cmp_2_exp_wait_v_walltime(
         exp1c1,
         exp1c2,
@@ -276,6 +252,9 @@ def violin_cmp_2_exp_wait_v_walltime(
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     bin_index = 0
+    
+    total_jobs = len(exp1_net)  # Calculate total jobs for percentage calculation
+
     for label in labels:
         fig.add_trace(go.Violin(
             x=exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label],
@@ -325,11 +304,20 @@ def violin_cmp_2_exp_wait_v_walltime(
                            text=f"Avg={mean_exp2:.2f}", showarrow=False,
                            font=dict(color='red'))
 
+        # Calculate job count and percentage for the bin
+        bin_count = len(exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label])
+        bin_percent = (bin_count / total_jobs) * 100
+
+        # Add annotation for job count and percentage
+        fig.add_annotation(x=bin_index, y=y_range[1] * 1.15,  # Adjust position as needed
+                           text=f"Jobs: {bin_count} ({bin_percent:.1f}%)",
+                           showarrow=False, font=dict(size=10))
+
         bin_index += 1
 
     fig.add_trace(go.Violin(
-        x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
-        y=exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'],
+        x=exp1_cpy['walltime_binned'],
+        y=exp1_cpy['wait_m'],
         legendgroup=exp_1_name,
         scalegroup='Overall',
         name=exp_1_name,
@@ -339,8 +327,8 @@ def violin_cmp_2_exp_wait_v_walltime(
         spanmode = 'hard'
     ))
     fig.add_trace(go.Violin(
-        x=exp2_cpy['walltime_binned'][exp2_cpy['walltime_binned'] == 'Overall'],
-        y=exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'Overall'],
+        x=exp2_cpy['walltime_binned'],
+        y=exp2_cpy['wait_m'],
         legendgroup=exp_2_name,
         scalegroup='Overall',
         name=exp_2_name,
@@ -350,30 +338,9 @@ def violin_cmp_2_exp_wait_v_walltime(
         spanmode = 'hard'
     ))
 
-    fig.update_traces(
-        meanline_visible=True,
-        points=False,
-        jitter=0.05,
-        scalemode='count'
-    )
-    fig.update_layout(
-        violingap=0, 
-        violingroupgap=0,
-        violinmode='overlay', 
-        title="Violin Plot of Wait Time Distribution by Job Size and Experiment",
-        xaxis_title="Job Walltime (min)",
-        yaxis_title="Wait Time (min)",
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01
-        ),
-        xaxis={'categoryarray': labels, 'categoryorder': 'array'}
-    )
 
-    mean_exp1_overall = exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'].mean()
-    mean_exp2_overall = exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'Overall'].mean()
+    mean_exp1_overall = exp1_cpy['wait_m'].mean()
+    mean_exp2_overall = exp2_cpy['wait_m'].mean()
 
     fig.add_shape(go.Line(x0=bin_index - 0.5, x1=bin_index, y0=mean_exp1_overall, y1=mean_exp1_overall, 
                           line=dict(color='green', width=2, dash='dash')))  
@@ -382,10 +349,10 @@ def violin_cmp_2_exp_wait_v_walltime(
 
     # Add annotations for 'Overall' mean values
     y_range_overall = [
-        min(exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'].min(),
-            exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'Overall'].min()),
-        max(exp1_cpy['wait_m'][exp1_cpy['walltime_binned'] == 'Overall'].max(),
-            exp2_cpy['wait_m'][exp2_cpy['walltime_binned'] == 'Overall'].max())
+        min(exp1_cpy['wait_m'].min(),
+            exp2_cpy['wait_m'].min()),
+        max(exp1_cpy['wait_m'].max(),
+            exp2_cpy['wait_m'].max())
     ]
     y_offset_overall = (y_range_overall[1] - y_range_overall[0]) * 0.05  # 5% of the y-range
 
@@ -397,21 +364,33 @@ def violin_cmp_2_exp_wait_v_walltime(
                        text=f"Avg={mean_exp2_overall:.2f}", showarrow=False,
                        font=dict(color='red'))
 
-
-    # Add Job Counts
-    for _df, name in zip([exp1_net], [exp_1_name]):
-        bin_counts = _df['walltime_binned'].value_counts().sort_index()
-        fig.add_trace(go.Scatter(
-                x=bin_counts.index, 
-                y=bin_counts.values, 
-                name=f'Job counts per bin', 
-                mode='lines+markers',
-                line=dict(color='black'),  # Set line color
-                marker=dict(color='black')  # Set marker color
-            ),
-            secondary_y = True
-        )
-
+    # Add annotation for overall job count and percentage (which is 100%)
+    fig.add_annotation(x=bin_index, y=y_range_overall[1] * 1.1,  # Adjust position as needed
+                       text=f"Jobs: {total_jobs} (100%)",
+                       showarrow=False, font=dict(size=10))
+    
+    fig.update_traces(
+        meanline_visible=True,
+        points=False,
+        jitter=0.05,
+        scalemode='count'
+    )
+    fig.update_layout(
+        violingap=0, 
+        violingroupgap=0,
+        violinmode='overlay', 
+        title="Violin Plot of Wait Time Distribution by Job Walltime and Experiment",
+        xaxis_title="Job Walltime (min)",
+        yaxis_title="Wait Time (min)",
+        legend=dict(
+            yanchor="top",
+            y=1.15,
+            xanchor="left",
+            x=0.01,
+            orientation='h'
+        ),
+        xaxis={'categoryarray': labels + ['Overall'], 'categoryorder': 'array'} # Include 'Overall' in x-axis categories
+    )
 
     return [
         dcc.Markdown(
@@ -423,6 +402,8 @@ Wait time (min) vs Job Walltime (min)
                 figure = fig
             ),
     ]
+
+
 
 def cal_boslow(df):
     return df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
