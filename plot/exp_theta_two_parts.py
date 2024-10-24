@@ -9,6 +9,35 @@ from plotly.subplots import make_subplots
 
 
 ###################################################################
+# Utility functions
+###################################################################
+def cal_boslow(df):
+    '''
+    Calcaulte bounded slowdown.
+    '''
+    return df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
+
+def cal_boslow95(df):
+    '''
+    Calcuate bounded slowdown and only reaturn values in the 95% CI.
+    '''
+    # Calculate bounded slowdown for each row
+    df['bounded_slowdown'] = df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
+
+    # Calculate mean and standard deviation of bounded slowdown
+    mean_slowdown = df['bounded_slowdown'].mean()
+    std_slowdown = df['bounded_slowdown'].std()
+
+    # Calculate 95% confidence interval
+    ci_lower = mean_slowdown - 1.96 * std_slowdown
+    ci_upper = mean_slowdown + 1.96 * std_slowdown
+
+    # Filter rows based on confidence interval
+    df_filtered = df[(df['bounded_slowdown'] >= ci_lower) & (df['bounded_slowdown'] <= ci_upper)]
+
+    return df_filtered
+
+###################################################################
 # Wait Time vs Node Count (Binned)
 ###################################################################
 def violin_cmp_2_exp_wait_v_node_count(
@@ -95,13 +124,14 @@ def violin_cmp_2_exp_wait_v_node_count(
         ]
         y_offset = (y_range[1] - y_range[0]) * 0.05  # 5% of the y-range
 
-        # Add annotations with mean values and dynamic vertical offset
         fig.add_annotation(x=bin_index - 0.25, y=mean_exp1 + y_offset, 
                            text=f"Avg={mean_exp1:.2f}", showarrow=False, 
-                           font=dict(color='red'))
+                           font=dict(color='red'),
+                           textangle=-45)  # Add textangle here
         fig.add_annotation(x=bin_index + 0.25, y=mean_exp2 + y_offset,
                            text=f"Avg={mean_exp2:.2f}", showarrow=False,
-                           font=dict(color='red'))
+                           font=dict(color='red'),
+                           textangle=-45)   # Add textangle here
 
         # Calculate job count and percentage for the bin
         bin_count = len(exp1_net['proc_binned'][exp1_net['proc_binned'] == label])
@@ -164,10 +194,12 @@ def violin_cmp_2_exp_wait_v_node_count(
     # Add annotations for 'Overall' mean values with dynamic vertical offset
     fig.add_annotation(x=bin_index - 0.25, y=mean_exp1_overall + y_offset_overall,
                        text=f"Avg={mean_exp1_overall:.2f}", showarrow=False, 
-                       font=dict(color='red'))
+                       font=dict(color='red'),
+                       textangle=-45)  # Add textangle here
     fig.add_annotation(x=bin_index + 0.25, y=mean_exp2_overall + y_offset_overall, 
                        text=f"Avg={mean_exp2_overall:.2f}", showarrow=False,
-                       font=dict(color='red'))
+                       font=dict(color='red'),
+                       textangle=-45)
 
     # Add annotation for overall job count and percentage (which is 100%)
     fig.add_annotation(x=bin_index, y=y_range_overall[1] * 1.1,  # Adjust position as needed
@@ -207,6 +239,7 @@ Wait time (min) vs Job Size
                 figure = fig
             ),
     ]
+
 
 ###################################################################
 # Wait Time vs Walltime (Binned)
@@ -299,10 +332,12 @@ def violin_cmp_2_exp_wait_v_walltime(
         # Add annotations with mean values and dynamic vertical offset
         fig.add_annotation(x=bin_index - 0.25, y=mean_exp1 + y_offset, 
                            text=f"Avg={mean_exp1:.2f}", showarrow=False, 
-                           font=dict(color='red'))
+                           font=dict(color='red'),
+                       textangle=-45)
         fig.add_annotation(x=bin_index + 0.25, y=mean_exp2 + y_offset,
                            text=f"Avg={mean_exp2:.2f}", showarrow=False,
-                           font=dict(color='red'))
+                           font=dict(color='red'),
+                       textangle=-45)
 
         # Calculate job count and percentage for the bin
         bin_count = len(exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label])
@@ -359,10 +394,12 @@ def violin_cmp_2_exp_wait_v_walltime(
     # Add annotations for 'Overall' mean values with dynamic vertical offset
     fig.add_annotation(x=bin_index - 0.25, y=mean_exp1_overall + y_offset_overall,
                        text=f"Avg={mean_exp1_overall:.2f}", showarrow=False, 
-                       font=dict(color='red'))
+                       font=dict(color='red'),
+                       textangle=-45)
     fig.add_annotation(x=bin_index + 0.25, y=mean_exp2_overall + y_offset_overall, 
                        text=f"Avg={mean_exp2_overall:.2f}", showarrow=False,
-                       font=dict(color='red'))
+                       font=dict(color='red'),
+                       textangle=-45)
 
     # Add annotation for overall job count and percentage (which is 100%)
     fig.add_annotation(x=bin_index, y=y_range_overall[1] * 1.1,  # Adjust position as needed
@@ -405,27 +442,9 @@ Wait time (min) vs Job Walltime (min)
 
 
 
-def cal_boslow(df):
-    return df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
-
-def cal_boslow95(df):
-    # Calculate bounded slowdown for each row
-    df['bounded_slowdown'] = df.apply(lambda row: (row['wait'] + row['run']) / row['run'] if row['run'] > 10 else (row['wait'] + row['run']) / 10, axis=1)
-
-    # Calculate mean and standard deviation of bounded slowdown
-    mean_slowdown = df['bounded_slowdown'].mean()
-    std_slowdown = df['bounded_slowdown'].std()
-
-    # Calculate 95% confidence interval
-    ci_lower = mean_slowdown - 1.96 * std_slowdown
-    ci_upper = mean_slowdown + 1.96 * std_slowdown
-
-    # Filter rows based on confidence interval
-    df_filtered = df[(df['bounded_slowdown'] >= ci_lower) & (df['bounded_slowdown'] <= ci_upper)]
-
-    return df_filtered
-
-
+###################################################################
+# Bounded Slowdown vs Node Counts (Binned)
+###################################################################
 def violin_cmp_2_exp_boslo_v_node_count(
         exp1c1,
         exp1c2,
@@ -549,6 +568,10 @@ Bounded Slowdown vs Job Size
     ]
 
 
+
+###################################################################
+# Bounded Slowdown vs Walltime (Binned)
+###################################################################
 def violin_cmp_2_exp_boslo_v_walltime(
         exp1c1,
         exp1c2,
@@ -672,6 +695,10 @@ Bounded Slowdown vs Job Walltime (min)
             ),
     ]
 
+
+###################################################################
+# Bounded Slowdown in 95% CI vs Walltime (Binned)
+###################################################################
 def violin_cmp_2_exp_boslo_v_walltime_95(
         exp1c1,
         exp1c2,
@@ -694,15 +721,12 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
     # Remove first 1000 and last 1000 jobs
     # Cluster warmup period
     exp1_net = exp1_net.sort_values(by='id')
-    exp2_net = exp2_net.sort_values(by='id')  # Fixed typo here, should be exp2_net
+    exp2_net = exp2_net.sort_values(by='id')
     exp1_net = exp1_net.iloc[1000:-1000]
     exp2_net = exp2_net.iloc[1000:-1000]
 
     exp1_net['walltime'] = exp1_net['walltime'] / 60
     exp2_net['walltime'] = exp2_net['walltime'] / 60
-
-    # exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
-    # exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
 
     exp1_net = cal_boslow95(exp1_net)
     exp2_net = cal_boslow95(exp2_net)
@@ -721,16 +745,6 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
 
     fig = go.Figure()
     for label in labels:
-        # Calculate 95% confidence interval for each bin
-        # exp1_bin = exp1_net[exp1_net['walltime_binned'] == label]['bounded_slowdown']
-        # exp2_bin = exp2_net[exp2_net['walltime_binned'] == label]['bounded_slowdown']
-        
-        # exp1_ci = exp1_bin.quantile([0.025, 0.975])
-        # exp2_ci = exp2_bin.quantile([0.025, 0.975])
-
-        # # Filter data within the confidence interval
-        # exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
-        # exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
 
         fig.add_trace(go.Violin(
             x=exp1_net['walltime_binned'][exp1_net['walltime_binned'] == label],
@@ -754,19 +768,6 @@ def violin_cmp_2_exp_boslo_v_walltime_95(
             showlegend=False,
             spanmode = 'hard'
         ))
-
-    # Calculate 95% confidence interval for overall data
-    # exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-    # exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-
-    # Filter overall data within the confidence interval
-    # exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
-    #     (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
-    # ]
-    # exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
-    #     (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
-    # ]
-
     fig.add_trace(go.Violin(
         x=exp1_cpy['walltime_binned'][exp1_cpy['walltime_binned'] == 'Overall'],
         y=exp1_cpy['bounded_slowdown'][exp1_cpy['walltime_binned'] == 'Overall'],
@@ -823,7 +824,9 @@ Bounded Slowdown in 95% CI vs Job Walltime (min)
     ]
 
 
-
+###################################################################
+# Bounded Slowdown in 95% CI vs Node Count (Binned)
+###################################################################
 def violin_cmp_2_exp_boslo_v_node_count_95(
         exp1c1,
         exp1c2,
@@ -849,22 +852,8 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
     exp1_net = exp1_net.iloc[1000:-1000]
     exp2_net = exp2_net.iloc[1000:-1000]
 
-    # exp1_net['bounded_slowdown'] = cal_boslow(exp1_net)
-    # exp2_net['bounded_slowdown'] = cal_boslow(exp2_net)
-
     exp1_net = cal_boslow95(exp1_net)
     exp2_net = cal_boslow95(exp2_net)
-
-    # exp1_overall_ci = exp1_net['bounded_slowdown'].quantile([0.025, 0.975])
-    # exp2_overall_ci = exp2_net['bounded_slowdown'].quantile([0.025, 0.975])
-
-    # exp1_net['bounded_slowdown'] = exp1_net['bounded_slowdown'][
-    #     (exp1_net['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_net['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
-    # ]
-    # exp2_net['bounded_slowdown'] = exp2_net['bounded_slowdown'][
-    #     (exp2_net['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_net['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
-    # ]
-    
 
     bins = [0, 128, 256, 512, 1024, 2048, float('inf')]
     labels = ['(0, 128]', '(128, 256]', '(256, 512]', '(512, 1024]', '(1024, 2048]', '(2048, 2180]']
@@ -883,13 +872,6 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
         # Calculate 95% confidence interval for each bin
         exp1_bin = exp1_net[exp1_net['proc_binned'] == label]['bounded_slowdown']
         exp2_bin = exp2_net[exp2_net['proc_binned'] == label]['bounded_slowdown']
-
-        # exp1_ci = exp1_bin.quantile([0.025, 0.975])
-        # exp2_ci = exp2_bin.quantile([0.025, 0.975])
-
-        # # Filter data within the confidence interval
-        # exp1_filtered = exp1_bin[(exp1_bin >= exp1_ci.iloc[0]) & (exp1_bin <= exp1_ci.iloc[1])]
-        # exp2_filtered = exp2_bin[(exp2_bin >= exp2_ci.iloc[0]) & (exp2_bin <= exp2_ci.iloc[1])]
 
         fig.add_trace(go.Violin(
             x=exp1_net['proc_binned'][exp1_net['proc_binned'] == label],
@@ -914,18 +896,6 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
             spanmode = 'hard'
         ))
         showlegend = False
-
-    # Calculate 95% confidence interval for overall data
-    # exp1_overall_ci = exp1_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-    # exp2_overall_ci = exp2_cpy['bounded_slowdown'].quantile([0.025, 0.975])
-
-    # Filter overall data within the confidence interval
-    # exp1_overall_filtered = exp1_cpy['bounded_slowdown'][
-    #     (exp1_cpy['bounded_slowdown'] >= exp1_overall_ci.iloc[0]) & (exp1_cpy['bounded_slowdown'] <= exp1_overall_ci.iloc[1])
-    # ]
-    # exp2_overall_filtered = exp2_cpy['bounded_slowdown'][
-    #     (exp2_cpy['bounded_slowdown'] >= exp2_overall_ci.iloc[0]) & (exp2_cpy['bounded_slowdown'] <= exp2_overall_ci.iloc[1])
-    # ]
 
     fig.add_trace(go.Violin(
         x=exp1_cpy['proc_binned'][exp1_cpy['proc_binned'] == 'Overall'],
@@ -975,6 +945,172 @@ def violin_cmp_2_exp_boslo_v_node_count_95(
         dcc.Markdown(
             f"""
 Bounded Slowdown in 95% CI vs Job Size
+"""
+        ),
+        dcc.Graph(
+            figure=fig
+        ),
+    ]
+
+###################################################################
+# Average utilization vs Time (Per Day)
+###################################################################
+def line_cmp_2_exp_avg_uti_v_time(
+        exp1c1,
+        exp2c1,
+        exp_1_name,
+        exp_2_name,
+        start_time_offset = 0,
+        line_colors = ['orange', 'green']
+    ):
+
+    c1 = read_ult(exp1c1)
+    # c2 = read_ult(exp1c2)
+    c3 = read_ult(exp2c1)
+    # c4 = read_ult(exp2c2)
+    
+    fig = go.Figure()
+
+    exp1_net = pd.concat([c1], axis=0)
+    exp2_net = pd.concat([c3], axis=0)
+
+    # Remove first 1000 and last 1000 jobs
+    # Cluster warmup period
+    exp1_net = exp1_net.sort_values(by='timestamp')
+    exp2_net = exp2_net.sort_values(by='timestamp')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
+
+    exp1_net['timestamp'] = exp1_net['timestamp'] + start_time_offset
+    exp2_net['timestamp'] = exp2_net['timestamp'] + start_time_offset
+
+
+    # Convert UNIX timestamps to datetime objects
+    exp1_net['day'] = pd.to_datetime(exp1_net['timestamp'], unit='s').dt.date
+    exp2_net['day'] = pd.to_datetime(exp2_net['timestamp'], unit='s').dt.date
+
+    # Calculate average utilization for each day
+    avg_utilization_exp1 = exp1_net.groupby('day')['utilization'].mean()
+    avg_utilization_exp2 = exp2_net.groupby('day')['utilization'].mean()
+
+    fig.add_trace(go.Scatter(
+        x=avg_utilization_exp1.index,
+        y=avg_utilization_exp1.values,
+        name=exp_1_name,
+        line_color= line_colors[0]
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=avg_utilization_exp2.index,
+        y=avg_utilization_exp2.values,
+        name=exp_2_name,
+        line_color= line_colors[1]
+    ))
+
+    # Customize the layout
+    # fig.update_layout(
+    #     title="Average Utilization per Day",
+    #     xaxis_title="Day",
+    #     yaxis_title="Average Utilization",
+    #     barmode='group'  # Grouped bar mode
+    # )
+
+    # Customize the layout
+    fig.update_layout(
+        title="Average Utilization per Day",
+        xaxis_title="Day",
+        yaxis_title="Average Utilization",
+        legend=dict(
+            yanchor="top",
+            y=1.15,
+            xanchor="left",
+            x=0.01,
+            orientation='h'
+        ),
+    )
+
+    return [
+        dcc.Markdown(
+            f"""
+Avg Utilization Per Day
+"""
+        ),
+        dcc.Graph(
+            figure=fig
+        ),
+    ]
+
+###################################################################
+# Job Submit Events Per Day
+###################################################################
+def line_job_submit_events_per_day(
+        exp1c1,
+        exp1c2,
+        exp_1_name,
+        exp_2_name,
+        start_time_offset = 0,
+        line_colors = ['orange', 'green']
+    ):
+
+    c1 = read_ult(exp1c1)
+    c2 = read_ult(exp1c2)
+    
+    fig = go.Figure()
+
+    exp1_net = pd.concat([c1], axis=0)
+    exp2_net = pd.concat([c2], axis=0)
+
+    # Remove first 1000 and last 1000 jobs
+    # Cluster warmup period
+    exp1_net = exp1_net.sort_values(by='timestamp')
+    exp2_net = exp2_net.sort_values(by='timestamp')
+    exp1_net = exp1_net.iloc[1000:-1000]
+    exp2_net = exp2_net.iloc[1000:-1000]
+
+    exp1_net['timestamp'] = exp1_net['timestamp'] + start_time_offset
+    exp2_net['timestamp'] = exp2_net['timestamp'] + start_time_offset
+
+
+    # Convert UNIX timestamps to datetime objects
+    exp1_net['day'] = pd.to_datetime(exp1_net['timestamp'], unit='s').dt.date
+    exp2_net['day'] = pd.to_datetime(exp2_net['timestamp'], unit='s').dt.date
+
+
+    count_submit_events_exp1 = exp1_net[exp1_net['event_type'] == 'S'].groupby('day').size()
+    count_submit_events_exp2 = exp2_net[exp2_net['event_type'] == 'S'].groupby('day').size()
+
+    fig.add_trace(go.Scatter(
+        x=count_submit_events_exp1.index,
+        y=count_submit_events_exp1.values,
+        name=exp_1_name,
+        line_color=line_colors[0]
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=count_submit_events_exp2.index,
+        y=count_submit_events_exp2.values,
+        name=exp_2_name,
+        line_color=line_colors[1]
+    ))
+
+    # Customize the layout
+    fig.update_layout(
+        title="Job Submitted per Day",
+        xaxis_title="Day",
+        yaxis_title="No. of Jobs Submitted",
+        legend=dict(
+            yanchor="top",
+            y=1.15,
+            xanchor="left",
+            x=0.01,
+            orientation='h'
+        ),
+    )
+
+    return [
+        dcc.Markdown(
+            f"""
+Number of jobs submitted per day
 """
         ),
         dcc.Graph(
